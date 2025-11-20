@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Keller's incoming parcels — Baserow UI</title>
-  <link rel="icon" href="data:;base64,iVBORw0KGgo="> 
+  <link rel="icon" href="favicon.png"> 
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <style>
     :root{--bg:#f6f8fa;--panel:#ffffff;--muted:#6a737d;--accent:#0366d6}
@@ -27,7 +27,7 @@
     .small{padding:6px 8px;font-size:13px}
     .muted{color:var(--muted)}
     .file-preview{max-height:48px}
-    .checkbox-center{display:flex;justify-content:center;align-items:center;height:100%;}
+    .checkbox-center{display:flex;justify-content:center;align-items:center;flex-direction:column;height:100%;}
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -150,6 +150,7 @@
       const pad = n => String(n).padStart(2,'0');
       return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
     }
+
     function fromLocalDate(val) {
       if(!val) return null;
       return new Date(val + 'T00:00:00Z').toISOString();
@@ -193,51 +194,50 @@
     document.getElementById('refreshBtn').addEventListener('click', ()=>{ fetchRows(); });
     document.getElementById('cancelBtn').addEventListener('click', ()=>{ closeForm(); });
 
-async function openEdit(rowId) {
-  try {
-    const resp = await axiosInstance.get(`/api/database/rows/table/${TABLE_ID}/${rowId}/`, { params: { user_field_names: true } });
-    const r = resp.data;
-    editingRowId = rowId;
-    document.getElementById('formTitle').innerText = `Edit record ${rowId}`;
-    document.getElementById('parcel_type').value = r.parcel_type && r.parcel_type.id ? r.parcel_type.id : (r.parcel_type || '');
-    document.getElementById('recipient').value = r.recipient || '';
-    document.getElementById('addressee').value = r.addressee || '';
-    document.getElementById('from_field').value = r.from || '';
-    document.getElementById('sent_on').value = toLocalDate(r.sent_on);
-    document.getElementById('collected_on').value = toLocalDate(r.collected_on);
-    document.getElementById('collected_by').value = r.collected_by || '';
-    document.getElementById('stored').value = r.stored || '';
-    document.getElementById('processed').checked = !!r.processed;
-    document.getElementById('content').value = r.content || '';
-    document.getElementById('remarks').value = r.remarks || '';
+    async function openEdit(rowId) {
+      try {
+        const resp = await axiosInstance.get(`/api/database/rows/table/${TABLE_ID}/${rowId}/`, { params: { user_field_names: true } });
+        const r = resp.data;
+        editingRowId = rowId;
+        document.getElementById('formTitle').innerText = `Edit record ${rowId}`;
+        document.getElementById('parcel_type').value = r.parcel_type && r.parcel_type.id ? r.parcel_type.id : (r.parcel_type || '');
+        document.getElementById('recipient').value = r.recipient || '';
+        document.getElementById('addressee').value = r.addressee || '';
+        document.getElementById('from_field').value = r.from || '';
+        document.getElementById('sent_on').value = toLocalDate(r.sent_on);
+        document.getElementById('collected_on').value = toLocalDate(r.collected_on);
+        document.getElementById('collected_by').value = r.collected_by || '';
+        document.getElementById('stored').value = r.stored || '';
+        document.getElementById('processed').checked = !!r.processed;
+        document.getElementById('content').value = r.content || '';
+        document.getElementById('remarks').value = r.remarks || '';
 
-    // picture previews
-    const previewParcel = document.getElementById('picturePreview'); previewParcel.innerHTML = '';
-    if(r.picture_parcel && r.picture_parcel.length){
-      const a = r.picture_parcel[0];
-      previewParcel.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        // picture previews
+        const previewParcel = document.getElementById('picturePreview'); previewParcel.innerHTML = '';
+        if(r.picture_parcel && r.picture_parcel.length){
+          const a = r.picture_parcel[0];
+          previewParcel.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        }
+
+        const previewContent = document.getElementById('contentPreview'); previewContent.innerHTML = '';
+        if(r.picture_content && r.picture_content.length){
+          const a = r.picture_content[0];
+          previewContent.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        }
+
+        const previewPaperwork = document.getElementById('paperworkPreview'); previewPaperwork.innerHTML = '';
+        if(r.picture_paperwork && r.picture_paperwork.length){
+          const a = r.picture_paperwork[0];
+          previewPaperwork.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        }
+
+        formCard.style.display = 'block';
+        window.scrollTo({top: formCard.offsetTop-20, behavior:'smooth'});
+      } catch (err) {
+        console.error(err); 
+        alert('Failed to fetch row for editing. See console.');
+      }
     }
-
-    const previewContent = document.getElementById('contentPreview'); previewContent.innerHTML = '';
-    if(r.picture_content && r.picture_content.length){
-      const a = r.picture_content[0];
-      previewContent.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
-    }
-
-    const previewPaperwork = document.getElementById('paperworkPreview'); previewPaperwork.innerHTML = '';
-    if(r.picture_paperwork && r.picture_paperwork.length){
-      const a = r.picture_paperwork[0];
-      previewPaperwork.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
-    }
-
-    formCard.style.display = 'block';
-    window.scrollTo({top: formCard.offsetTop-20, behavior:'smooth'});
-  } catch (err) {
-    console.error(err); 
-    alert('Failed to fetch row for editing. See console.');
-  }
-}
-
 
     function openFormForNew(){
       editingRowId = null;
@@ -296,7 +296,6 @@ async function openEdit(rowId) {
           const r = await axiosInstance.post('/api/user-files/upload-file/', up, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
-          console.log(`Uploaded ${fieldName}:`, r.data);
           data[fieldName] = [ r.data ];
         }
       };
