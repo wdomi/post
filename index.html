@@ -36,7 +36,7 @@
     <header>
       <svg height="32" width="32" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="16" height="16" rx="3" fill="#0366d6"/></svg>
       <div>
-        <h1>WDomi parcel — Baserow viewer/editor</h1>
+        <h1>Keller's Lab incoming Post — Baserow viewer/editor</h1>
         <p class="lead">Table ID: <strong>745937</strong> — Database ID: <strong>323904</strong></p>
       </div>
     </header>
@@ -80,14 +80,17 @@
             <label>from</label>
             <input id="from_field" name="from" />
           </div>
+
           <div>
             <label>sent_on</label>
-            <input id="sent_on" name="sent_on" type="datetime-local" />
+            <input id="sent_on" name="sent_on" type="date" />
           </div>
           <div>
             <label>collected_on</label>
-            <input id="collected_on" name="collected_on" type="datetime-local" />
+            <input id="collected_on" name="collected_on" type="date" />
           </div>
+
+          
           <div>
             <label>collected_by</label>
             <input id="collected_by" name="collected_by" />
@@ -255,52 +258,48 @@
       e.preventDefault();
       document.getElementById('formMsg').innerText = 'Saving...';
       try {
-        const payload = await buildPayloadFromForm();
-        if(editingRowId){
-          await axiosInstance.patch(`/api/database/rows/table/${TABLE_ID}/${editingRowId}/`, payload, { params: { user_field_names: true } });
-          document.getElementById('formMsg').innerText = 'Updated.';
-        } else {
-          await axiosInstance.post(`/api/database/rows/table/${TABLE_ID}/`, payload, { params: { user_field_names: true } });
-          document.getElementById('formMsg').innerText = 'Created.';
-        }
-        setTimeout(()=>{ closeForm(); fetchRows(); }, 700);
-      } catch (err) {
-        console.error(err);
-        document.getElementById('formMsg').innerText = 'Error. See console.';
-      }
-    });
+        const payload = await 
 
-    async function buildPayloadFromForm(){
-      const data = {};
-      const form = new FormData(parcelForm);
-      const ptype = form.get('parcel_type'); if(ptype) data.parcel_type = Number(ptype);
-      const recipient = form.get('recipient'); if(recipient) data.recipient = recipient;
-      const addressee = form.get('addressee'); if(addressee) data.addressee = addressee;
-      const fromv = form.get('from'); if(fromv) data.from = fromv;
-      const sent = fromLocalInput(form.get('sent_on')); if(sent) data.sent_on = sent;
-      const collected = fromLocalInput(form.get('collected_on')); if(collected) data.collected_on = collected;
-      const collected_by = form.get('collected_by'); if(collected_by) data.collected_by = collected_by;
-      const stored = form.get('stored'); if(stored) data.stored = stored;
-      data.processed = document.getElementById('processed').checked;
-      const content = form.get('content'); if(content) data.content = content;
-      const remarks = form.get('remarks'); if(remarks) data.remarks = remarks;
 
-      const handleFileUpload = async (inputId, fieldName) => {
-        const fileInput = document.getElementById(inputId);
-        if(fileInput && fileInput.files && fileInput.files.length){
-          const f = fileInput.files[0];
-          const up = new FormData(); up.append('file', f);
-          const r = await axiosInstance.post('/api/user-files/upload-file/', up, { headers: { 'Content-Type': 'multipart/form-data' } });
-          data[fieldName] = [ r.data ];
-        }
-      };
+          async function buildPayloadFromForm() {
+  const data = {};
+  const form = new FormData(parcelForm);
 
-      await handleFileUpload('picture_parcel','picture_parcel');
-      await handleFileUpload('picture_content','picture_content');
-      await handleFileUpload('picture_documentation','picture_documentation');
+  // Standard fields
+  const ptype = form.get('parcel_type'); if(ptype) data.parcel_type = Number(ptype);
+  const recipient = form.get('recipient'); if(recipient) data.recipient = recipient;
+  const addressee = form.get('addressee'); if(addressee) data.addressee = addressee;
+  const fromv = form.get('from'); if(fromv) data.from = fromv;
+  const sent = fromLocalInput(form.get('sent_on')); if(sent) data.sent_on = sent;
+  const collected = fromLocalInput(form.get('collected_on')); if(collected) data.collected_on = collected;
+  const collected_by = form.get('collected_by'); if(collected_by) data.collected_by = collected_by;
+  const stored = form.get('stored'); if(stored) data.stored = stored;
+  data.processed = document.getElementById('processed').checked;
+  const content = form.get('content'); if(content) data.content = content;
+  const remarks = form.get('remarks'); if(remarks) data.remarks = remarks;
 
-      return data;
+  // File upload helper
+  const handleFileUpload = async (inputId, fieldName) => {
+    const fileInput = document.getElementById(inputId);
+    if (fileInput && fileInput.files && fileInput.files.length) {
+      const f = fileInput.files[0];
+      const up = new FormData();
+      up.append('file', f);
+      const r = await axiosInstance.post('/api/user-files/upload-file/', up, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      console.log(`Uploaded ${fieldName}:`, r.data); // debug
+      data[fieldName] = [ r.data ]; // must be array
     }
+  };
+
+  await handleFileUpload('picture_parcel', 'picture_parcel');
+  await handleFileUpload('picture_content', 'picture_content');
+  await handleFileUpload('picture_documentation', 'picture_paperwork'); // corrected name
+
+  return data;
+}
+
 
     fetchRows();
   </script>
