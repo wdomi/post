@@ -335,8 +335,10 @@ async function buildPayloadFromForm(){
   data.sender = get("sender");
   data.recipient = get("recipient");
   data.addressee = get("addressee");
-  data.sent_on = get("sent_on");            // ← fixed (removed fromLocalDate)
-  data.collected_on = get("collected_on");  // ← fixed (removed fromLocalDate)
+  const rawSent = get("sent_on");
+  data.sent_on = rawSent ? rawSent.split("T")[0] : null;  // ← fixed (removed fromLocalDate)
+  const rawCollected = get("collected_on");
+  data.collected_on = rawCollected ? rawCollected.split("T")[0] : null;  // ← fixed (removed fromLocalDate)
   data.collected_by = get("collected_by");
   data.content = get("content");
   data.stored = get("stored");
