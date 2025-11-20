@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WDomi Parcel — Baserow UI</title>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo="> 
+  <!-- Axios CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    :root{--bg:#f6f8fa;--panel:#ffffff;--muted:#6a737d;--accent:#0366d6}
+    body{font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; background:var(--bg); margin:0; color:#24292e}
+    .wrap{max-width:1100px;margin:28px auto;padding:24px}
+    header{display:flex;align-items:center;gap:18px}
+    h1{margin:0;font-size:20px}
+    p.lead{margin:4px 0 18px;color:var(--muted)}
+    .card{background:var(--panel);border:1px solid #e1e4e8;border-radius:6px;padding:16px;margin-bottom:18px;box-shadow:0 1px 0 rgba(27,31,35,0.04)}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button{background:var(--accent);color:white;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid #e1e4e8}
+    input,select,textarea{padding:8px;border:1px solid #d0d7de;border-radius:6px;width:100%;box-sizing:border-box}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #eaecef;text-align:left}
+    tr:hover{background:#fbfdff}
+    .actions{display:flex;gap:6px}
+    .small{padding:6px 8px;font-size:13px}
+    .muted{color:var(--muted)}
+    .file-preview{max-height:48px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <svg height="32" width="32" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="16" height="16" rx="3" fill="#0366d6"/></svg>
+      <div>
+        <h1>WDomi parcel — Baserow viewer/editor</h1>
+        <p class="lead">Table ID: <strong>745937</strong> — Database ID: <strong>323904</strong></p>
+      </div>
+    </header>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div class="controls">
+          <button id="refreshBtn">Refresh</button>
+          <button id="newBtn" class="ghost">New record</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="list" class="card">
+      <h3 style="margin-top:0">Parcels</h3>
+      <div id="rowsContainer">Loading…</div>
+    </div>
+
+    <div id="formCard" class="card" style="display:none">
+      <h3 id="formTitle">New record</h3>
+      <form id="parcelForm">
+        <div class="grid">
+          <div>
+            <label>parcel_type</label>
+            <select id="parcel_type" name="parcel_type">
+              <option value="4534608">package</option>
+              <option value="4534609">letter</option>
+              <option value="4534610">cooled parcel</option>
+              <option value="4534611">frozen parcel</option>
+            </select>
+          </div>
+          <div>
+            <label>recipient</label>
+            <input id="recipient" name="recipient" />
+          </div>
+          <div>
+            <label>addressee</label>
+            <input id="addressee" name="addressee" />
+          </div>
+          <div>
+            <label>from</label>
+            <input id="from_field" name="from" />
+          </div>
+          <div>
+            <label>sent_on</label>
+            <input id="sent_on" name="sent_on" type="datetime-local" />
+          </div>
+          <div>
+            <label>collected_on</label>
+            <input id="collected_on" name="collected_on" type="datetime-local" />
+          </div>
+          <div>
+            <label>collected_by</label>
+            <input id="collected_by" name="collected_by" />
+          </div>
+          <div>
+            <label>stored</label>
+            <textarea id="stored" name="stored" rows="2"></textarea>
+          </div>
+          <div>
+            <label>processed</label>
+            <input id="processed" name="processed" type="checkbox" />
+          </div>
+          <div>
+            <label>content</label>
+            <textarea id="content" name="content" rows="2"></textarea>
+          </div>
+          <div>
+            <label>remarks</label>
+            <textarea id="remarks" name="remarks" rows="2"></textarea>
+          </div>
+          <div>
+            <label>picture_parcel (file)</label>
+            <input id="picture_parcel" name="picture_parcel" type="file" />
+            <div id="picturePreview"></div>
+          </div>
+          <div>
+            <label>picture_content (file)</label>
+            <input id="picture_content" name="picture_content" type="file" />
+            <div id="contentPreview"></div>
+          </div>
+          <div>
+            <label>picture_documentation (file)</label>
+            <input id="picture_documentation" name="picture_documentation" type="file" />
+            <div id="documentationPreview"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button type="submit">Save</button>
+          <button type="button" id="cancelBtn" class="ghost small">Cancel</button>
+          <div id="formMsg" class="muted" style="align-self:center"></div>
+        </div>
+      </form>
+    </div>
+
+    <footer style="margin-top:18px" class="muted">Built for you. Change the token or backend as needed.</footer>
+  </div>
+
+  <script>
+    const BASE_URL = 'https://api.baserow.io';
+    const TABLE_ID = 745937;
+    const API_TOKEN = '0wLX1Y0v3Ud6QdReg0GisfaKUXqqeE5v';
+
+    const axiosInstance = axios.create({
+      baseURL: BASE_URL,
+      headers: { Authorization: `Token ${API_TOKEN}` }
+    });
+
+    function toLocalInput(iso) {
+      if(!iso) return '';
+      const d = new Date(iso);
+      const pad = n => String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    function fromLocalInput(val) {
+      if(!val) return null;
+      return new Date(val).toISOString();
+    }
+
+    async function fetchRows() {
+      const container = document.getElementById('rowsContainer');
+      container.innerHTML = 'Loading...';
+      try {
+        const resp = await axiosInstance.get(`/api/database/rows/table/${TABLE_ID}/`, { params: { user_field_names: true, page_size: 200 } });
+        const results = resp.data && resp.data.results ? resp.data.results : resp.data;
+        renderRows(results);
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<div class="muted">Failed to load rows. See console.</div>';
+      }
+    }
+
+    function renderRows(rows) {
+      const container = document.getElementById('rowsContainer');
+      if(!rows || rows.length === 0) { container.innerHTML = '<div class="muted">No records</div>'; return; }
+      let html = '<table><thead><tr><th>ID</th><th>parcel_type</th><th>recipient</th><th>from</th><th>sent_on</th><th>processed</th><th>actions</th></tr></thead><tbody>';
+      rows.forEach(r => {
+        const sent = r.sent_on ? new Date(r.sent_on).toLocaleString() : '';
+        const ptype = (r.parcel_type && typeof r.parcel_type === 'object') ? r.parcel_type.value || '' : (r.parcel_type || '');
+        const processed = r.processed ? '✅' : '';
+        html += `<tr data-rowid="${r.id}"><td>${r.id}</td><td>${escapeHtml(ptype)}</td><td>${escapeHtml(r.recipient||'')}</td><td>${escapeHtml(r.from||'')}</td><td>${escapeHtml(sent)}</td><td>${processed}</td><td class="actions"><button class="ghost small" data-edit="${r.id}">Edit</button></td></tr>`;
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+      document.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => openEdit(btn.getAttribute('data-edit'))));
+    }
+
+    function escapeHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    const formCard = document.getElementById('formCard');
+    const parcelForm = document.getElementById('parcelForm');
+    let editingRowId = null;
+
+    document.getElementById('newBtn').addEventListener('click', ()=>{ openFormForNew(); });
+    document.getElementById('refreshBtn').addEventListener('click', ()=>{ fetchRows(); });
+    document.getElementById('cancelBtn').addEventListener('click', ()=>{ closeForm(); });
+
+    async function openEdit(rowId) {
+      try {
+        const resp = await axiosInstance.get(`/api/database/rows/table/${TABLE_ID}/${rowId}/`, { params: { user_field_names: true } });
+        const r = resp.data;
+        editingRowId = rowId;
+        document.getElementById('formTitle').innerText = `Edit record ${rowId}`;
+        document.getElementById('parcel_type').value = r.parcel_type && r.parcel_type.id ? r.parcel_type.id : (r.parcel_type || '');
+        document.getElementById('recipient').value = r.recipient || '';
+        document.getElementById('addressee').value = r.addressee || '';
+        document.getElementById('from_field').value = r.from || '';
+        document.getElementById('sent_on').value = toLocalInput(r.sent_on);
+        document.getElementById('collected_on').value = toLocalInput(r.collected_on);
+        document.getElementById('collected_by').value = r.collected_by || '';
+        document.getElementById('stored').value = r.stored || '';
+        document.getElementById('processed').checked = !!r.processed;
+        document.getElementById('content').value = r.content || '';
+        document.getElementById('remarks').value = r.remarks || '';
+
+        const previewParcel = document.getElementById('picturePreview'); previewParcel.innerHTML = '';
+        if(r.picture_parcel && r.picture_parcel.length){
+          const a = r.picture_parcel[0];
+          previewParcel.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        }
+
+        const previewContent = document.getElementById('contentPreview'); previewContent.innerHTML = '';
+        if(r.picture_content && r.picture_content.length){
+          const a = r.picture_content[0];
+          previewContent.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        }
+
+        const previewDoc = document.getElementById('documentationPreview'); previewDoc.innerHTML = '';
+        if(r.picture_documentation && r.picture_documentation.length){
+          const a = r.picture_documentation[0];
+          previewDoc.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        }
+
+        formCard.style.display = 'block';
+        window.scrollTo({top: formCard.offsetTop-20, behavior:'smooth'});
+      } catch (err) {
+        console.error(err); alert('Failed to fetch row for editing. See console.');
+      }
+    }
+
+    function openFormForNew(){
+      editingRowId = null;
+      document.getElementById('formTitle').innerText = 'New record';
+      parcelForm.reset();
+      document.getElementById('picturePreview').innerHTML = '';
+      document.getElementById('contentPreview').innerHTML = '';
+      document.getElementById('documentationPreview').innerHTML = '';
+      formCard.style.display = 'block';
+      window.scrollTo({top: formCard.offsetTop-20, behavior:'smooth'});
+    }
+
+    function closeForm(){ formCard.style.display = 'none'; editingRowId = null; document.getElementById('formMsg').innerText = ''; }
+
+    parcelForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      document.getElementById('formMsg').innerText = 'Saving...';
+      try {
+        const payload = await buildPayloadFromForm();
+        if(editingRowId){
+          await axiosInstance.patch(`/api/database/rows/table/${TABLE_ID}/${editingRowId}/`, payload, { params: { user_field_names: true } });
+          document.getElementById('formMsg').innerText = 'Updated.';
+        } else {
+          await axiosInstance.post(`/api/database/rows/table/${TABLE_ID}/`, payload, { params: { user_field_names: true } });
+          document.getElementById('formMsg').innerText = 'Created.';
+        }
+        setTimeout(()=>{ closeForm(); fetchRows(); }, 700);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('formMsg').innerText = 'Error. See console.';
+      }
+    });
+
+    async function buildPayloadFromForm(){
+      const data = {};
+      const form = new FormData(parcelForm);
+      const ptype = form.get('parcel_type'); if(ptype) data.parcel_type = Number(ptype);
+      const recipient = form.get('recipient'); if(recipient) data.recipient = recipient;
+      const addressee = form.get('addressee'); if(addressee) data.addressee = addressee;
+      const fromv = form.get('from'); if(fromv) data.from = fromv;
+      const sent = fromLocalInput(form.get('sent_on')); if(sent) data.sent_on = sent;
+      const collected = fromLocalInput(form.get('collected_on')); if(collected) data.collected_on = collected;
+      const collected_by = form.get('collected_by'); if(collected_by) data.collected_by = collected_by;
+      const stored = form.get('stored'); if(stored) data.stored = stored;
+      data.processed = document.getElementById('processed').checked;
+      const content = form.get('content'); if(content) data.content = content;
+      const remarks = form.get('remarks'); if(remarks) data.remarks = remarks;
+
+      const handleFileUpload = async (inputId, fieldName) => {
+        const fileInput = document.getElementById(inputId);
+        if(fileInput && fileInput.files && fileInput.files.length){
+          const f = fileInput.files[0];
+          const up = new FormData(); up.append('file', f);
+          const r = await axiosInstance.post('/api/user-files/upload-file/', up, { headers: { 'Content-Type': 'multipart/form-data' } });
+          data[fieldName] = [ r.data ];
+        }
+      };
+
+      await handleFileUpload('picture_parcel','picture_parcel');
+      await handleFileUpload('picture_content','picture_content');
+      await handleFileUpload('picture_documentation','picture_documentation');
+
+      return data;
+    }
+
+    fetchRows();
+  </script>
+</body>
+</html>
