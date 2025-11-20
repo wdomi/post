@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>WDomi Parcel — Baserow UI</title>
+  <title>Keller's incoming parcels — Baserow UI</title>
   <link rel="icon" href="data:;base64,iVBORw0KGgo="> 
-  <!-- Axios CDN -->
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <style>
     :root{--bg:#f6f8fa;--panel:#ffffff;--muted:#6a737d;--accent:#0366d6}
@@ -28,6 +27,7 @@
     .small{padding:6px 8px;font-size:13px}
     .muted{color:var(--muted)}
     .file-preview{max-height:48px}
+    .checkbox-center{display:flex;justify-content:center;align-items:center;height:100%;}
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -36,17 +36,15 @@
     <header>
       <svg height="32" width="32" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="16" height="16" rx="3" fill="#0366d6"/></svg>
       <div>
-        <h1>Keller's Lab incoming Post — Baserow viewer/editor</h1>
+        <h1>WDomi parcel — Baserow viewer/editor</h1>
         <p class="lead">Table ID: <strong>745937</strong> — Database ID: <strong>323904</strong></p>
       </div>
     </header>
 
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-        <div class="controls">
-          <button id="refreshBtn">Refresh</button>
-          <button id="newBtn" class="ghost">New record</button>
-        </div>
+      <div class="controls">
+        <button id="refreshBtn">Refresh</button>
+        <button id="newBtn" class="ghost">New record</button>
       </div>
     </div>
 
@@ -80,7 +78,6 @@
             <label>from</label>
             <input id="from_field" name="from" />
           </div>
-
           <div>
             <label>sent_on</label>
             <input id="sent_on" name="sent_on" type="date" />
@@ -89,8 +86,6 @@
             <label>collected_on</label>
             <input id="collected_on" name="collected_on" type="date" />
           </div>
-
-          
           <div>
             <label>collected_by</label>
             <input id="collected_by" name="collected_by" />
@@ -99,7 +94,7 @@
             <label>stored</label>
             <textarea id="stored" name="stored" rows="2"></textarea>
           </div>
-          <div>
+          <div class="checkbox-center">
             <label>processed</label>
             <input id="processed" name="processed" type="checkbox" />
           </div>
@@ -122,9 +117,9 @@
             <div id="contentPreview"></div>
           </div>
           <div>
-            <label>picture_documentation (file)</label>
-            <input id="picture_documentation" name="picture_documentation" type="file" />
-            <div id="documentationPreview"></div>
+            <label>picture_paperwork (file)</label>
+            <input id="picture_paperwork" name="picture_paperwork" type="file" />
+            <div id="paperworkPreview"></div>
           </div>
         </div>
 
@@ -136,7 +131,7 @@
       </form>
     </div>
 
-    <footer style="margin-top:18px" class="muted">Built for you. Change the token or backend as needed.</footer>
+    <footer style="margin-top:18px" class="muted">Something doesn't work? Contact Domi.</footer>
   </div>
 
   <script>
@@ -149,15 +144,15 @@
       headers: { Authorization: `Token ${API_TOKEN}` }
     });
 
-    function toLocalInput(iso) {
+    function toLocalDate(iso) {
       if(!iso) return '';
       const d = new Date(iso);
       const pad = n => String(n).padStart(2,'0');
-      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
     }
-    function fromLocalInput(val) {
+    function fromLocalDate(val) {
       if(!val) return null;
-      return new Date(val).toISOString();
+      return new Date(val + 'T00:00:00Z').toISOString();
     }
 
     async function fetchRows() {
@@ -178,7 +173,7 @@
       if(!rows || rows.length === 0) { container.innerHTML = '<div class="muted">No records</div>'; return; }
       let html = '<table><thead><tr><th>ID</th><th>parcel_type</th><th>recipient</th><th>from</th><th>sent_on</th><th>processed</th><th>actions</th></tr></thead><tbody>';
       rows.forEach(r => {
-        const sent = r.sent_on ? new Date(r.sent_on).toLocaleString() : '';
+        const sent = r.sent_on ? new Date(r.sent_on).toLocaleDateString() : '';
         const ptype = (r.parcel_type && typeof r.parcel_type === 'object') ? r.parcel_type.value || '' : (r.parcel_type || '');
         const processed = r.processed ? '✅' : '';
         html += `<tr data-rowid="${r.id}"><td>${r.id}</td><td>${escapeHtml(ptype)}</td><td>${escapeHtml(r.recipient||'')}</td><td>${escapeHtml(r.from||'')}</td><td>${escapeHtml(sent)}</td><td>${processed}</td><td class="actions"><button class="ghost small" data-edit="${r.id}">Edit</button></td></tr>`;
@@ -208,8 +203,8 @@
         document.getElementById('recipient').value = r.recipient || '';
         document.getElementById('addressee').value = r.addressee || '';
         document.getElementById('from_field').value = r.from || '';
-        document.getElementById('sent_on').value = toLocalInput(r.sent_on);
-        document.getElementById('collected_on').value = toLocalInput(r.collected_on);
+        document.getElementById('sent_on').value = toLocalDate(r.sent_on);
+        document.getElementById('collected_on').value = toLocalDate(r.collected_on);
         document.getElementById('collected_by').value = r.collected_by || '';
         document.getElementById('stored').value = r.stored || '';
         document.getElementById('processed').checked = !!r.processed;
@@ -228,10 +223,10 @@
           previewContent.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
         }
 
-        const previewDoc = document.getElementById('documentationPreview'); previewDoc.innerHTML = '';
-        if(r.picture_documentation && r.picture_documentation.length){
-          const a = r.picture_documentation[0];
-          previewDoc.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        const previewPaperwork = document.getElementById('paperworkPreview'); previewPaperwork.innerHTML = '';
+        if(r.picture_paperwork && r.picture_paperwork.length){
+          const a = r.picture_paperwork[0];
+          previewPaperwork.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
         }
 
         formCard.style.display = 'block';
@@ -247,7 +242,7 @@
       parcelForm.reset();
       document.getElementById('picturePreview').innerHTML = '';
       document.getElementById('contentPreview').innerHTML = '';
-      document.getElementById('documentationPreview').innerHTML = '';
+      document.getElementById('paperworkPreview').innerHTML = '';
       formCard.style.display = 'block';
       window.scrollTo({top: formCard.offsetTop-20, behavior:'smooth'});
     }
@@ -258,48 +253,57 @@
       e.preventDefault();
       document.getElementById('formMsg').innerText = 'Saving...';
       try {
-        const payload = await 
+        const payload = await buildPayloadFromForm();
+        if(editingRowId){
+          await axiosInstance.patch(`/api/database/rows/table/${TABLE_ID}/${editingRowId}/`, payload, { params: { user_field_names: true } });
+          document.getElementById('formMsg').innerText = 'Updated.';
+        } else {
+          await axiosInstance.post(`/api/database/rows/table/${TABLE_ID}/`, payload, { params: { user_field_names: true } });
+          document.getElementById('formMsg').innerText = 'Created.';
+        }
+        setTimeout(()=>{ closeForm(); fetchRows(); }, 700);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('formMsg').innerText = 'Error. See console.';
+      }
+    });
 
+    async function buildPayloadFromForm() {
+      const data = {};
+      const form = new FormData(parcelForm);
 
-          async function buildPayloadFromForm() {
-  const data = {};
-  const form = new FormData(parcelForm);
+      const ptype = form.get('parcel_type'); if(ptype) data.parcel_type = Number(ptype);
+      const recipient = form.get('recipient'); if(recipient) data.recipient = recipient;
+      const addressee = form.get('addressee'); if(addressee) data.addressee = addressee;
+      const fromv = form.get('from'); if(fromv) data.from = fromv;
+      const sent = fromLocalDate(form.get('sent_on')); if(sent) data.sent_on = sent;
+      const collected = fromLocalDate(form.get('collected_on')); if(collected) data.collected_on = collected;
+      const collected_by = form.get('collected_by'); if(collected_by) data.collected_by = collected_by;
+      const stored = form.get('stored'); if(stored) data.stored = stored;
+      data.processed = document.getElementById('processed').checked;
+      const content = form.get('content'); if(content) data.content = content;
+      const remarks = form.get('remarks'); if(remarks) data.remarks = remarks;
 
-  // Standard fields
-  const ptype = form.get('parcel_type'); if(ptype) data.parcel_type = Number(ptype);
-  const recipient = form.get('recipient'); if(recipient) data.recipient = recipient;
-  const addressee = form.get('addressee'); if(addressee) data.addressee = addressee;
-  const fromv = form.get('from'); if(fromv) data.from = fromv;
-  const sent = fromLocalInput(form.get('sent_on')); if(sent) data.sent_on = sent;
-  const collected = fromLocalInput(form.get('collected_on')); if(collected) data.collected_on = collected;
-  const collected_by = form.get('collected_by'); if(collected_by) data.collected_by = collected_by;
-  const stored = form.get('stored'); if(stored) data.stored = stored;
-  data.processed = document.getElementById('processed').checked;
-  const content = form.get('content'); if(content) data.content = content;
-  const remarks = form.get('remarks'); if(remarks) data.remarks = remarks;
+      const handleFileUpload = async (inputId, fieldName) => {
+        const fileInput = document.getElementById(inputId);
+        if(fileInput && fileInput.files && fileInput.files.length){
+          const f = fileInput.files[0];
+          const up = new FormData();
+          up.append('file', f);
+          const r = await axiosInstance.post('/api/user-files/upload-file/', up, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          console.log(`Uploaded ${fieldName}:`, r.data);
+          data[fieldName] = [ r.data ];
+        }
+      };
 
-  // File upload helper
-  const handleFileUpload = async (inputId, fieldName) => {
-    const fileInput = document.getElementById(inputId);
-    if (fileInput && fileInput.files && fileInput.files.length) {
-      const f = fileInput.files[0];
-      const up = new FormData();
-      up.append('file', f);
-      const r = await axiosInstance.post('/api/user-files/upload-file/', up, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      console.log(`Uploaded ${fieldName}:`, r.data); // debug
-      data[fieldName] = [ r.data ]; // must be array
+      await handleFileUpload('picture_parcel','picture_parcel');
+      await handleFileUpload('picture_content','picture_content');
+      await handleFileUpload('picture_paperwork','picture_paperwork');
+
+      return data;
     }
-  };
-
-  await handleFileUpload('picture_parcel', 'picture_parcel');
-  await handleFileUpload('picture_content', 'picture_content');
-  await handleFileUpload('picture_documentation', 'picture_paperwork'); // corrected name
-
-  return data;
-}
-
 
     fetchRows();
   </script>
