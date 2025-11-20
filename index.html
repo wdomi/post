@@ -174,7 +174,6 @@ const axiosInstance = axios.create({
 });
 
 function toLocalDate(iso){ if(!iso) return ''; const d=new Date(iso); const pad=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}` }
-function fromLocalDate(val){ if(!val) return null; return new Date(val+'T00:00:00Z').toISOString(); }
 
 let editingRowId = null;
 
@@ -245,8 +244,8 @@ async function openEdit(id){
     document.getElementById('sender').value = r.sender || '';
     document.getElementById('recipient').value = r.recipient || '';
     document.getElementById('addressee').value = r.addressee || '';
-    document.getElementById('sent_on').value = toLocalDate(r.sent_on);
-    document.getElementById('collected_on').value = toLocalDate(r.collected_on);
+    document.getElementById('sent_on').value = r.sent_on || '';
+    document.getElementById('collected_on').value = r.collected_on || '';
     document.getElementById('collected_by').value = r.collected_by || '';
     document.getElementById('content').value = r.content || '';
     document.getElementById('stored').value = r.stored || '';
@@ -326,15 +325,14 @@ parcelForm.addEventListener('submit', async e=>{
 async function buildPayloadFromForm(){
   const data = {};
   const form = new FormData(parcelForm);
-
   const get = name => form.get(name) || null;
 
   data.parcel_type = Number(get("parcel_type"));
   data.sender = get("sender");
   data.recipient = get("recipient");
   data.addressee = get("addressee");
-  data.sent_on = fromLocalDate(get("sent_on"));
-  data.collected_on = fromLocalDate(get("collected_on"));
+  data.sent_on = get("sent_on") || null;
+  data.collected_on = get("collected_on") || null;
   data.collected_by = get("collected_by");
   data.content = get("content");
   data.stored = get("stored");
@@ -355,7 +353,7 @@ async function buildPayloadFromForm(){
         headers: {"Content-Type": "multipart/form-data"}
       });
 
-      data[fieldName].push(res.data.file); // Baserow Cloud format
+      data[fieldName].push(res.data.file);
     }
   }
 
@@ -376,4 +374,3 @@ fetchRows();
 
 </body>
 </html>
-
