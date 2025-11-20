@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Keller's incoming parcels — Baserow UI</title>
-  <link rel="icon" href="favicon.png"> 
+  <link rel="icon" type="image/png" href="favicon.png">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <style>
     :root{--bg:#f6f8fa;--panel:#ffffff;--muted:#6a737d;--accent:#0366d6}
@@ -34,7 +34,7 @@
 <body>
   <div class="wrap">
     <header>
-      <svg height="32" width="32" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="16" height="16" rx="3" fill="#0366d6"/></svg>
+      <img src="favicon.png" alt="favicon" height="32" width="32" style="border-radius:4px;">
       <div>
         <h1>Keller's parcels — Baserow viewer/editor</h1>
         <p class="lead">Table ID: <strong>745937</strong> — Database ID: <strong>323904</strong></p>
@@ -253,19 +253,20 @@
     async function buildPayloadFromForm(){
       const data={};
       const form=new FormData(parcelForm);
-
-      const ptype=form.get('parcel_type'); if(ptype) data.parcel_type=Number(ptype);
+      const ptype = form.get('parcel_type');
+        data.parcel_type = ptype ? Number(ptype) : null;
       const recipient=form.get('recipient'); if(recipient) data.recipient=recipient;
       const addressee=form.get('addressee'); if(addressee) data.addressee=addressee;
       const fromv=form.get('from'); if(fromv) data.from=fromv;
-      const sent=form.get('sent_on'); if(sent) data.sent_on=sent; // date-only
-      const collected=form.get('collected_on'); if(collected) data.collected_on=collected; // date-only
+      const sent = form.get('sent_on'); // date-only
+        data.sent_on = sent ? sent : null;
+      const collected = form.get('collected_on'); // date-only
+        data.collected_on = collected ? collected : null;
       const collected_by=form.get('collected_by'); if(collected_by) data.collected_by=collected_by;
       const stored=form.get('stored'); if(stored) data.stored=stored;
-      data.processed=document.getElementById('processed').checked;
+        data.processed=document.getElementById('processed').checked;
       const content=form.get('content'); if(content) data.content=content;
       const remarks=form.get('remarks'); if(remarks) data.remarks=remarks;
-
       const handleFileUpload=async (inputId,fieldName)=>{
         const fileInput=document.getElementById(inputId);
         if(fileInput && fileInput.files && fileInput.files.length){
