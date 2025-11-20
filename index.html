@@ -1,5 +1,4 @@
 <!doctype html>
--- this is working, just not saving the edit --
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -37,7 +36,7 @@
     <header>
       <svg height="32" width="32" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="16" height="16" rx="3" fill="#0366d6"/></svg>
       <div>
-        <h1>WDomi parcel — Baserow viewer/editor</h1>
+        <h1>Keller's parcels — Baserow viewer/editor</h1>
         <p class="lead">Table ID: <strong>745937</strong> — Database ID: <strong>323904</strong></p>
       </div>
     </header>
@@ -145,17 +144,7 @@
       headers: { Authorization: `Token ${API_TOKEN}` }
     });
 
-    function toLocalDate(iso) {
-      if(!iso) return '';
-      const d = new Date(iso);
-      const pad = n => String(n).padStart(2,'0');
-      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    }
-
-    function fromLocalDate(val) {
-      if(!val) return null;
-      return new Date(val + 'T00:00:00Z').toISOString();
-    }
+    function escapeHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     async function fetchRows() {
       const container = document.getElementById('rowsContainer');
@@ -170,103 +159,121 @@
       }
     }
 
-    function renderRows(rows) {
+    function renderRows(rows){
       const container = document.getElementById('rowsContainer');
-      if(!rows || rows.length === 0) { container.innerHTML = '<div class="muted">No records</div>'; return; }
-      let html = '<table><thead><tr><th>ID</th><th>parcel_type</th><th>recipient</th><th>from</th><th>sent_on</th><th>processed</th><th>actions</th></tr></thead><tbody>';
-      rows.forEach(r => {
-        const sent = r.sent_on ? new Date(r.sent_on).toLocaleDateString() : '';
-        const ptype = (r.parcel_type && typeof r.parcel_type === 'object') ? r.parcel_type.value || '' : (r.parcel_type || '');
-        const processed = r.processed ? '✅' : '';
-        html += `<tr data-rowid="${r.id}"><td>${r.id}</td><td>${escapeHtml(ptype)}</td><td>${escapeHtml(r.recipient||'')}</td><td>${escapeHtml(r.from||'')}</td><td>${escapeHtml(sent)}</td><td>${processed}</td><td class="actions"><button class="ghost small" data-edit="${r.id}">Edit</button></td></tr>`;
+      if(!rows || rows.length===0){ container.innerHTML='<div class="muted">No records</div>'; return; }
+      let html='<table><thead><tr><th>ID</th><th>parcel_type</th><th>recipient</th><th>from</th><th>sent_on</th><th>processed</th><th>actions</th></tr></thead><tbody>';
+      rows.forEach(r=>{
+        const sent = r.sent_on || '';
+        const ptype = (r.parcel_type && typeof r.parcel_type==='object') ? r.parcel_type.value||'' : (r.parcel_type||'');
+        const processed = r.processed ? '✅':'';
+        html+=`<tr data-rowid="${r.id}"><td>${r.id}</td><td>${escapeHtml(ptype)}</td><td>${escapeHtml(r.recipient||'')}</td><td>${escapeHtml(r.from||'')}</td><td>${escapeHtml(sent)}</td><td>${processed}</td><td class="actions"><button class="ghost small" data-edit="${r.id}">Edit</button></td></tr>`;
       });
-      html += '</tbody></table>';
-      container.innerHTML = html;
-      document.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => openEdit(btn.getAttribute('data-edit'))));
+      html+='</tbody></table>';
+      container.innerHTML=html;
+      document.querySelectorAll('[data-edit]').forEach(btn=>btn.addEventListener('click', e=>openEdit(btn.getAttribute('data-edit'))));
     }
-
-    function escapeHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     const formCard = document.getElementById('formCard');
     const parcelForm = document.getElementById('parcelForm');
     let editingRowId = null;
 
-    document.getElementById('newBtn').addEventListener('click', ()=>{ openFormForNew(); });
-    document.getElementById('refreshBtn').addEventListener('click', ()=>{ fetchRows(); });
-    document.getElementById('cancelBtn').addEventListener('click', ()=>{ closeForm(); });
+    document.getElementById('newBtn').addEventListener('click',()=>openFormForNew());
+    document.getElementById('refreshBtn').addEventListener('click',()=>fetchRows());
+    document.getElementById('cancelBtn').addEventListener('click',()=>closeForm());
 
-async function openEdit(rowId) {
-  try {
-    const resp = await axiosInstance.get(`/api/database/rows/table/${TABLE_ID}/${rowId}/`, { params: { user_field_names: true } });
-    const r = resp.data;
-    editingRowId = rowId;
-    document.getElementById('formTitle').innerText = `Edit record ${rowId}`;
-    document.getElementById('parcel_type').value = r.parcel_type && r.parcel_type.id ? r.parcel_type.id : (r.parcel_type || '');
-    document.getElementById('recipient').value = r.recipient || '';
-    document.getElementById('addressee').value = r.addressee || '';
-    document.getElementById('from_field').value = r.from || '';
-    document.getElementById('sent_on').value = toLocalDate(r.sent_on);
-    document.getElementById('collected_on').value = toLocalDate(r.collected_on);
-    document.getElementById('collected_by').value = r.collected_by || '';
-    document.getElementById('stored').value = r.stored || '';
-    document.getElementById('processed').checked = !!r.processed;
-    document.getElementById('content').value = r.content || '';
-    document.getElementById('remarks').value = r.remarks || '';
+    async function openEdit(rowId){
+      try{
+        const resp = await axiosInstance.get(`/api/database/rows/table/${TABLE_ID}/${rowId}/`, { params:{ user_field_names:true }});
+        const r = resp.data;
+        editingRowId=rowId;
+        document.getElementById('formTitle').innerText=`Edit record ${rowId}`;
+        document.getElementById('parcel_type').value = r.parcel_type && r.parcel_type.id ? r.parcel_type.id : (r.parcel_type||'');
+        document.getElementById('recipient').value = r.recipient||'';
+        document.getElementById('addressee').value = r.addressee||'';
+        document.getElementById('from_field').value = r.from||'';
+        document.getElementById('sent_on').value = r.sent_on||'';
+        document.getElementById('collected_on').value = r.collected_on||'';
+        document.getElementById('collected_by').value = r.collected_by||'';
+        document.getElementById('stored').value = r.stored||'';
+        document.getElementById('processed').checked = !!r.processed;
+        document.getElementById('content').value = r.content||'';
+        document.getElementById('remarks').value = r.remarks||'';
 
-    // picture previews
-    const previewParcel = document.getElementById('picturePreview'); previewParcel.innerHTML = '';
-    if(r.picture_parcel && r.picture_parcel.length){
-      const a = r.picture_parcel[0];
-      previewParcel.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        const previewParcel=document.getElementById('picturePreview'); previewParcel.innerHTML='';
+        if(r.picture_parcel && r.picture_parcel.length){
+          const a=r.picture_parcel[0];
+          previewParcel.innerHTML=`<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        }
+        const previewContent=document.getElementById('contentPreview'); previewContent.innerHTML='';
+        if(r.picture_content && r.picture_content.length){
+          const a=r.picture_content[0];
+          previewContent.innerHTML=`<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        }
+        const previewPaperwork=document.getElementById('paperworkPreview'); previewPaperwork.innerHTML='';
+        if(r.picture_paperwork && r.picture_paperwork.length){
+          const a=r.picture_paperwork[0];
+          previewPaperwork.innerHTML=`<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+        }
+
+        formCard.style.display='block';
+        window.scrollTo({top:formCard.offsetTop-20,behavior:'smooth'});
+      }catch(err){console.error(err);alert('Failed to fetch row for editing. See console.');}
     }
 
-    const previewContent = document.getElementById('contentPreview'); previewContent.innerHTML = '';
-    if(r.picture_content && r.picture_content.length){
-      const a = r.picture_content[0];
-      previewContent.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
+    function openFormForNew(){
+      editingRowId=null;
+      document.getElementById('formTitle').innerText='New record';
+      parcelForm.reset();
+      document.getElementById('picturePreview').innerHTML='';
+      document.getElementById('contentPreview').innerHTML='';
+      document.getElementById('paperworkPreview').innerHTML='';
+      formCard.style.display='block';
+      window.scrollTo({top:formCard.offsetTop-20,behavior:'smooth'});
     }
 
-    const previewPaperwork = document.getElementById('paperworkPreview'); previewPaperwork.innerHTML = '';
-    if(r.picture_paperwork && r.picture_paperwork.length){
-      const a = r.picture_paperwork[0];
-      previewPaperwork.innerHTML = `<div><a href="${a.url||a.download_url||'#'}" target="_blank">${escapeHtml(a.name||'file')}</a></div>`;
-    }
+    function closeForm(){ formCard.style.display='none'; editingRowId=null; document.getElementById('formMsg').innerText=''; }
 
-    formCard.style.display = 'block';
-    window.scrollTo({top: formCard.offsetTop-20, behavior:'smooth'});
-  } catch (err) {
-    console.error(err); 
-    alert('Failed to fetch row for editing. See console.');
-  } // <-- closes the try/catch
-} // <-- closes the openEdit function
+    parcelForm.addEventListener('submit', async e=>{
+      e.preventDefault();
+      document.getElementById('formMsg').innerText='Saving...';
+      try{
+        const payload = await buildPayloadFromForm();
+        if(editingRowId){
+          await axiosInstance.patch(`/api/database/rows/table/${TABLE_ID}/${editingRowId}/`, payload, { params:{ user_field_names:true }});
+          document.getElementById('formMsg').innerText='Updated.';
+        }else{
+          await axiosInstance.post(`/api/database/rows/table/${TABLE_ID}/`, payload, { params:{ user_field_names:true }});
+          document.getElementById('formMsg').innerText='Created.';
+        }
+        setTimeout(()=>{ closeForm(); fetchRows(); },700);
+      }catch(err){ console.error(err); document.getElementById('formMsg').innerText='Error. See console.'; }
+    });
 
+    async function buildPayloadFromForm(){
+      const data={};
+      const form=new FormData(parcelForm);
 
-    async function buildPayloadFromForm() {
-      const data = {};
-      const form = new FormData(parcelForm);
+      const ptype=form.get('parcel_type'); if(ptype) data.parcel_type=Number(ptype);
+      const recipient=form.get('recipient'); if(recipient) data.recipient=recipient;
+      const addressee=form.get('addressee'); if(addressee) data.addressee=addressee;
+      const fromv=form.get('from'); if(fromv) data.from=fromv;
+      const sent=form.get('sent_on'); if(sent) data.sent_on=sent; // date-only
+      const collected=form.get('collected_on'); if(collected) data.collected_on=collected; // date-only
+      const collected_by=form.get('collected_by'); if(collected_by) data.collected_by=collected_by;
+      const stored=form.get('stored'); if(stored) data.stored=stored;
+      data.processed=document.getElementById('processed').checked;
+      const content=form.get('content'); if(content) data.content=content;
+      const remarks=form.get('remarks'); if(remarks) data.remarks=remarks;
 
-      const ptype = form.get('parcel_type'); if(ptype) data.parcel_type = Number(ptype);
-      const recipient = form.get('recipient'); if(recipient) data.recipient = recipient;
-      const addressee = form.get('addressee'); if(addressee) data.addressee = addressee;
-      const fromv = form.get('from'); if(fromv) data.from = fromv;
-      const sent = fromLocalDate(form.get('sent_on')); if(sent) data.sent_on = sent;
-      const collected = fromLocalDate(form.get('collected_on')); if(collected) data.collected_on = collected;
-      const collected_by = form.get('collected_by'); if(collected_by) data.collected_by = collected_by;
-      const stored = form.get('stored'); if(stored) data.stored = stored;
-      data.processed = document.getElementById('processed').checked;
-      const content = form.get('content'); if(content) data.content = content;
-      const remarks = form.get('remarks'); if(remarks) data.remarks = remarks;
-
-      const handleFileUpload = async (inputId, fieldName) => {
-        const fileInput = document.getElementById(inputId);
+      const handleFileUpload=async (inputId,fieldName)=>{
+        const fileInput=document.getElementById(inputId);
         if(fileInput && fileInput.files && fileInput.files.length){
-          const f = fileInput.files[0];
-          const up = new FormData();
-          up.append('file', f);
-          const r = await axiosInstance.post('/api/user-files/upload-file/', up, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          data[fieldName] = [ r.data ];
+          const f=fileInput.files[0];
+          const up=new FormData();
+          up.append('file',f);
+          const r=await axiosInstance.post('/api/user-files/upload-file/',up,{headers:{'Content-Type':'multipart/form-data'}});
+          data[fieldName]=[r.data];
         }
       };
 
