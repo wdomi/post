@@ -323,6 +323,8 @@ parcelForm.addEventListener('submit', async e=>{
   }
 });
 
+
+  
 async function buildPayloadFromForm(){
   const data = {};
   const form = new FormData(parcelForm);
@@ -333,8 +335,8 @@ async function buildPayloadFromForm(){
   data.sender = get("sender");
   data.recipient = get("recipient");
   data.addressee = get("addressee");
-  data.sent_on = fromLocalDate(get("sent_on"));
-  data.collected_on = fromLocalDate(get("collected_on"));
+  data.sent_on = get("sent_on");            // ← fixed (removed fromLocalDate)
+  data.collected_on = get("collected_on");  // ← fixed (removed fromLocalDate)
   data.collected_by = get("collected_by");
   data.content = get("content");
   data.stored = get("stored");
@@ -355,10 +357,16 @@ async function buildPayloadFromForm(){
         headers: {"Content-Type": "multipart/form-data"}
       });
 
-      data[fieldName].push(res.data.file); // Baserow Cloud format
+      data[fieldName].push(res.data.file);
     }
   }
 
+  return data;
+}
+
+
+
+  
   await upload("picture_parcel","picture_parcel");
   await upload("picture_content","picture_content");
   await upload("picture_paperwork","picture_paperwork");
