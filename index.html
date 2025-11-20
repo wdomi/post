@@ -323,60 +323,42 @@ parcelForm.addEventListener('submit', async e=>{
   }
 });
 
-
-  
-async function buildPayloadFromForm() {
+async function buildPayloadFromForm(){
   const data = {};
   const form = new FormData(parcelForm);
+
   const get = name => form.get(name) || null;
 
   data.parcel_type = Number(get("parcel_type"));
   data.sender = get("sender");
   data.recipient = get("recipient");
   data.addressee = get("addressee");
-
-  const rawSent = get("sent_on");
-  data.sent_on = rawSent ? rawSent.split("T")[0] : null;
-
-  const rawCollected = get("collected_on");
-  data.collected_on = rawCollected ? rawCollected.split("T")[0] : null;
-
+  data.sent_on = fromLocalDate(get("sent_on"));
+  data.collected_on = fromLocalDate(get("collected_on"));
   data.collected_by = get("collected_by");
   data.content = get("content");
   data.stored = get("stored");
   data.remarks = get("remarks");
   data.processed = document.getElementById("processed").checked;
 
-  async function upload(inputId, fieldName) {
+  async function upload(inputId, fieldName){
     const files = document.getElementById(inputId).files;
-    if (!files.length) return;
+    if(!files.length) return;
 
     data[fieldName] = [];
 
-    for (let f of files) {
+    for(let f of files){
       const fd = new FormData();
       fd.append("file", f);
 
       const res = await axiosInstance.post("/api/user-files/upload-file/", fd, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: {"Content-Type": "multipart/form-data"}
       });
 
-      data[fieldName].push(res.data.file);
+      data[fieldName].push(res.data.file); // Baserow Cloud format
     }
   }
 
-  // ⬅️ THESE MUST BE INSIDE THE FUNCTION
-  await upload("picture_parcel", "picture_parcel");
-  await upload("picture_content", "picture_content");
-  await upload("picture_paperwork", "picture_paperwork");
-
-  return data;
-}
-
-
-
-
-  
   await upload("picture_parcel","picture_parcel");
   await upload("picture_content","picture_content");
   await upload("picture_paperwork","picture_paperwork");
