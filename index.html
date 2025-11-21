@@ -111,29 +111,28 @@
 <div id="modalOverlay"><img id="modalImage" src="" /></div>
 
 <script>
-// Use local Vercel API instead of Baserow
 const api = axios.create({ baseURL: "/api" });
 
 function toLocalDate(iso){
   if (!iso) return '';
   const d = new Date(iso);
-  const pad = n => String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 let editingRowId = null;
 
-document.getElementById('newBtn').onclick = () => openFormForNew();
-document.getElementById('refreshBtn').onclick = () => fetchRows();
-document.getElementById('cancelBtn').onclick = () => closeForm();
+document.getElementById('newBtn').onclick = openFormForNew;
+document.getElementById('refreshBtn').onclick = fetchRows;
+document.getElementById('cancelBtn').onclick = closeForm;
 
 async function fetchRows(){
   const container=document.getElementById('rowsContainer');
   container.innerHTML='Loading...';
-  try{
+
+  try {
     const resp = await api.get("/rows");
-    renderRows(resp.data.results);
-  }catch(err){
+    renderRows(resp.data.results || []);
+  } catch (err){
     console.error(err);
     container.innerHTML='<div class="muted">Failed to load rows</div>';
   }
@@ -141,7 +140,7 @@ async function fetchRows(){
 
 function renderRows(rows){
   const container=document.getElementById('rowsContainer');
-  if(!rows.length){
+  if (!rows.length){
     container.innerHTML='<div class="muted">No records</div>';
     return;
   }
@@ -163,7 +162,7 @@ function renderRows(rows){
       <tbody>
   `;
 
-  rows.forEach(r=>{
+  for (const r of rows){
     html += `
       <tr>
         <td>${r.id}</td>
@@ -174,12 +173,11 @@ function renderRows(rows){
         <td>${toLocalDate(r.collected_on)}</td>
         <td>${r.processed ? '✅' : ''}</td>
         <td><button class="ghost small" onclick="openEdit(${r.id})">Edit</button></td>
-      </tr>
-    `;
-  });
+      </tr>`;
+  }
 
-  html += '</tbody></table>';
-  container.innerHTML=html;
+  html += `</tbody></table>`;
+  container.innerHTML = html;
 }
 
 async function openEdit(id){
@@ -203,15 +201,14 @@ async function openEdit(id){
 
     formCard.style.display='block';
     window.scrollTo({top:formCard.offsetTop-20,behavior:'smooth'});
-
-  }catch(err){
+  } catch(err){
     console.error(err);
     alert("Could not load record.");
   }
 }
 
 function openFormForNew(){
-  editingRowId=null;
+  editingRowId = null;
   parcelForm.reset();
   formCard.style.display='block';
 }
@@ -228,35 +225,35 @@ parcelForm.addEventListener('submit', async e=>{
     const payload = await buildPayloadFromForm();
 
     if(editingRowId){
-      await api.patch(`/row?id=${editingRowId}`, payload, {
+      await api.patch(`/row?id=${editingRowId}`, JSON.stringify(payload), {
         headers: { "Content-Type": "application/json" }
       });
     } else {
-      await api.post("/rows", payload, {
+      await api.post("/rows", JSON.stringify(payload), {
         headers: { "Content-Type": "application/json" }
       });
     }
 
     formMsg.innerText='Saved!';
     setTimeout(()=>{ closeForm(); fetchRows(); },600);
-
-  }catch(err){
+  } catch(err){
     console.error(err);
     formMsg.innerText='Save failed.';
   }
 });
 
 async function buildPayloadFromForm(){
-  const data = {};
   const form = new FormData(parcelForm);
+  const data = {};
+
   const get = name => form.get(name) || null;
 
   data.parcel_type = Number(get("parcel_type"));
   data.sender = get("sender");
   data.recipient = get("recipient");
   data.addressee = get("addressee");
-  data.sent_on = get("sent_on") || null;
-  data.collected_on = get("collected_on") || null;
+  data.sent_on = get("sent_on");
+  data.collected_on = get("collected_on");
   data.collected_by = get("collected_by");
   data.content = get("content");
   data.stored = get("stored");
@@ -265,10 +262,11 @@ async function buildPayloadFromForm(){
 
   async function upload(inputId, fieldName){
     const files = document.getElementById(inputId).files;
-    if(!files.length) return;
+    if(files.length === 0) return;
 
     data[fieldName] = [];
-    for(let f of files){
+
+    for (const f of files){
       const fd = new FormData();
       fd.append("file", f);
       const res = await api.post("/upload", fd);
