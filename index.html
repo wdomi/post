@@ -162,13 +162,9 @@
 <div id="modalOverlay"><img id="modalImage" src="" /></div>
 
 <script>
-const BASE_URL = 'https://api.baserow.io';
-const TABLE_ID = 745937;
+// Use local Vercel API instead of Baserow
+const api = axios.create({ baseURL: "/api" });
 
-const axiosInstance = axios.create({
-  baseURL: BASE_URL,
-  headers: { Authorization: `Token ${API_TOKEN}` }
-});
 
 function toLocalDate(iso){ if(!iso) return ''; const d=new Date(iso); const pad=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}` }
 
@@ -190,9 +186,7 @@ async function fetchRows(){
   const container=document.getElementById('rowsContainer');
   container.innerHTML='Loading...';
   try{
-    const resp = await axiosInstance.get(`/api/database/rows/table/${TABLE_ID}/`, {
-      params:{user_field_names:true,page_size:200}
-    });
+    const resp = await api.get("/rows");
     renderRows(resp.data.results);
   }catch(err){
     console.error(err);
@@ -231,9 +225,7 @@ function renderRows(rows){
 
 async function openEdit(id){
   try{
-    const r = (await axiosInstance.get(`/api/database/rows/table/${TABLE_ID}/${id}/`, {
-      params:{user_field_names:true}
-    })).data;
+    const r = (await api.get(`/row?id=${id}`)).data;
 
     editingRowId=id;
 
@@ -304,12 +296,10 @@ parcelForm.addEventListener('submit', async e=>{
     const payload = await buildPayloadFromForm();
 
     if(editingRowId){
-      await axiosInstance.patch(`/api/database/rows/table/${TABLE_ID}/${editingRowId}/`,
-        payload, {params:{user_field_names:true}});
+      await api.patch(`/row?id=${editingRowId}`, payload);
       formMsg.innerText='Updated.';
     } else {
-      await axiosInstance.post(`/api/database/rows/table/${TABLE_ID}/`,
-        payload, {params:{user_field_names:true}});
+      await api.post(`/rows`, payload);
       formMsg.innerText='Created.';
     }
 
@@ -348,9 +338,9 @@ async function buildPayloadFromForm(){
       const fd = new FormData();
       fd.append("file", f);
 
-      const res = await axiosInstance.post("/api/user-files/upload-file/", fd, {
-        headers: {"Content-Type": "multipart/form-data"}
-      });
+      const res = await api.post("/upload", fd, {
+  headers: { "Content-Type": "multipart/form-data" }
+});
 
       data[fieldName].push(res.data.file);
     }
