@@ -19,7 +19,8 @@ export default async function handler(req, res) {
     if (err) return res.status(400).json({ error: err });
 
     const file = files.file;
-    if (!file) return res.status(400).json({ error: "Missing file" });
+    if (!file)
+      return res.status(400).json({ error: "Missing file upload" });
 
     const fd = new FormData();
     fd.append("file", fs.createReadStream(file.filepath), file.originalFilename);
