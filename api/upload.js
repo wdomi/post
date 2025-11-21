@@ -5,6 +5,7 @@ export const config = {
 import formidable from "formidable";
 import fs from "fs";
 import FormData from "form-data";
+import fetch from "node-fetch";
 
 export default async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
@@ -23,7 +24,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing file upload" });
 
     const fd = new FormData();
-    fd.append("file", fs.createReadStream(file.filepath), file.originalFilename);
+    fd.append(
+      "file",
+      fs.createReadStream(file.filepath),
+      file.originalFilename
+    );
 
     const uploadResp = await fetch(
       "https://api.baserow.io/api/user-files/upload-file/",
