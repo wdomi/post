@@ -6,7 +6,8 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     const resp = await fetch(
-      base + "/?user_field_names=true&page_size=200&filters[processed__boolean]=false",
+      base +
+        "/?user_field_names=true&page_size=200&filters[processed__boolean]=false",
       {
         headers: { Authorization: "Token " + BASEROW_TOKEN }
       }
@@ -17,7 +18,13 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const payload = req.body;
+    let payload = req.body;
+
+    if (typeof payload === "string") {
+      try {
+        payload = JSON.parse(payload);
+      } catch {}
+    }
 
     const resp = await fetch(base + "/", {
       method: "POST",
