@@ -3,6 +3,8 @@ export const config = {
 };
 
 import formidable from "formidable";
+import fs from "fs";
+import FormData from "form-data";
 
 export default async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
@@ -17,20 +19,21 @@ export default async function handler(req, res) {
     if (err) return res.status(400).json({ error: err });
 
     const file = files.file;
+    if (!file) return res.status(400).json({ error: "Missing file" });
 
-    const uploadResp = await fetch("https://api.baserow.io/api/user-files/upload-file/", {
-      method: "POST",
-      headers: { Authorization: "Token " + BASEROW_TOKEN },
-      body: file ? fileToForm(file) : null
-    });
+    const fd = new FormData();
+    fd.append("file", fs.createReadStream(file.filepath), file.originalFilename);
+
+    const uploadResp = await fetch(
+      "https://api.baserow.io/api/user-files/upload-file/",
+      {
+        method: "POST",
+        headers: { Authorization: "Token " + BASEROW_TOKEN },
+        body: fd
+      }
+    );
 
     const data = await uploadResp.json();
     return res.status(uploadResp.status).json(data);
   });
-}
-
-function fileToForm(file) {
-  const form = new FormData();
-  form.append("file", fs.createReadStream(file.filepath), file.originalFilename);
-  return form;
 }
