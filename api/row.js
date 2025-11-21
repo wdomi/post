@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
     }
 
     const resp = await fetch(
-      base + "/?user_field_names=true", // IMPORTANT!
+      base + "/?user_field_names=true",
       {
         method: "PATCH",
         headers: {
