@@ -14,7 +14,11 @@ export default async function handler(req, res) {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const form = formidable({ multiples: false });
+  const form = formidable({
+    multiples: false,
+    uploadDir: "/tmp",       // Vercel temp directory
+    keepExtensions: true
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(400).json({ error: err });
