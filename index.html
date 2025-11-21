@@ -47,10 +47,15 @@
   </header>
 
   <div class="card">
-    <div class="controls">
-      <button id="refreshBtn">Refresh</button>
-      <button id="newBtn" class="ghost">New record</button>
-    </div>
+<div class="controls">
+  <button id="refreshBtn">Refresh</button>
+  <button id="newBtn" class="ghost">New record</button>
+
+  <label style="display:flex;align-items:center;gap:5px;">
+    <input type="checkbox" id="showProcessedToggle" />
+    Show processed
+  </label>
+</div>
   </div>
 
   <div id="list" class="card">
