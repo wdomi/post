@@ -1,10 +1,8 @@
-// api/upload.js — upload file to Baserow
 const formidable = require("formidable");
 const fs = require("fs");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
 
-// Disable default body parsing so formidable can handle multipart form-data
 const handler = async function (req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
 
@@ -14,7 +12,7 @@ const handler = async function (req, res) {
 
   const form = formidable({
     multiples: false,
-    uploadDir: "/tmp",      // Vercel temp dir
+    uploadDir: "/tmp",
     keepExtensions: true
   });
 
