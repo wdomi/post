@@ -40,7 +40,7 @@
 <div class="wrap">
 
   <header>
-      <link rel="icon" href="favicon.png" type="image/png"> 
+    <link rel="icon" href="favicon.png" type="image/png"> 
     <div>
       <h1>Keller's incoming parcels — Baserow viewer/editor</h1>
       <p class="lead">Table ID: <strong>745937</strong> — Database ID: <strong>323904</strong></p>
@@ -121,7 +121,7 @@
           <label>remarks</label>
           <textarea id="remarks" name="remarks" rows="2"></textarea>
         </div>
-        <!-- file fields -->
+
         <div>
           <label>picture_parcel (file)</label>
           <input id="picture_parcel" name="picture_parcel" type="file" multiple />
@@ -165,8 +165,12 @@
 // Use local Vercel API instead of Baserow
 const api = axios.create({ baseURL: "/api" });
 
-
-function toLocalDate(iso){ if(!iso) return ''; const d=new Date(iso); const pad=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}` }
+function toLocalDate(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
 
 let editingRowId = null;
 
@@ -196,13 +200,30 @@ async function fetchRows(){
 
 function renderRows(rows){
   const container=document.getElementById('rowsContainer');
-  if(!rows.length){ container.innerHTML='<div class="muted">No records</div>'; return; }
+  if(!rows.length){
+    container.innerHTML='<div class="muted">No records</div>';
+    return;
+  }
 
-  let html='<table><thead><tr><th>ID</th><th>parcel_type</th><th>to</th><th>sender</th><th>sent_on</th><th>collected_on</th><th>processed</th><th>actions</th>
-</tr></thead><tbody>';
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>parcel_type</th>
+          <th>to</th>
+          <th>sender</th>
+          <th>sent_on</th>
+          <th>collected_on</th>
+          <th>processed</th>
+          <th>actions</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
 
   rows.forEach(r=>{
-    html+=`
+    html += `
       <tr data-rowid="${r.id}">
         <td>${r.id}</td>
         <td>${r.parcel_type?.value || ''}</td>
@@ -212,11 +233,12 @@ function renderRows(rows){
         <td>${r.collected_on ? toLocalDate(r.collected_on) : ''}</td>
         <td>${r.processed ? '✅' : ''}</td>
         <td class="actions"><button class="ghost small" data-edit="${r.id}">Edit</button></td>
-      </tr>`;
+      </tr>
+    `;
   });
 
-  html+='</tbody></table>';
-  container.innerHTML=html;
+  html += '</tbody></table>';
+  container.innerHTML = html;
 
   document.querySelectorAll('[data-edit]').forEach(btn =>
     btn.addEventListener('click', () => openEdit(btn.dataset.edit))
@@ -227,10 +249,9 @@ async function openEdit(id){
   try{
     const r = (await api.get(`/row?id=${id}`)).data;
 
-    editingRowId=id;
+    editingRowId = id;
 
     document.getElementById('formTitle').innerText = `Edit record ${id}`;
-
     document.getElementById('parcel_type').value = r.parcel_type?.id || r.parcel_type || '';
     document.getElementById('sender').value = r.sender || '';
     document.getElementById('recipient').value = r.recipient || '';
@@ -243,10 +264,10 @@ async function openEdit(id){
     document.getElementById('remarks').value = r.remarks || '';
     document.getElementById('processed').checked = !!r.processed;
 
-    function showThumbs(arr, containerId){
-      const div = document.getElementById(containerId);
+    function showThumbs(arr, id){
+      const div = document.getElementById(id);
       div.innerHTML='';
-      if(arr){
+      if (arr) {
         arr.forEach(f=>{
           const url = f.url || f.download_url;
           if(url){
@@ -258,6 +279,7 @@ async function openEdit(id){
         });
       }
     }
+
     showThumbs(r.picture_parcel,'picturePreview');
     showThumbs(r.picture_content,'contentPreview');
     showThumbs(r.picture_paperwork,'paperworkPreview');
@@ -272,7 +294,7 @@ async function openEdit(id){
 }
 
 function openFormForNew(){
-  editingRowId=null;
+  editingRowId = null;
   parcelForm.reset();
   document.getElementById('formTitle').innerText='New record';
   document.getElementById('picturePreview').innerHTML='';
@@ -339,8 +361,8 @@ async function buildPayloadFromForm(){
       fd.append("file", f);
 
       const res = await api.post("/upload", fd, {
-  headers: { "Content-Type": "multipart/form-data" }
-});
+        headers: { "Content-Type": "multipart/form-data" }
+      });
 
       data[fieldName].push(res.data.file);
     }
