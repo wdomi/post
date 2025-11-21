@@ -1,8 +1,8 @@
 export default async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
   const TABLE_ID = 745937;
-
   const { id } = req.query;
+
   const base = `https://api.baserow.io/api/database/rows/table/${TABLE_ID}/${id}`;
 
   if (req.method === "GET") {
