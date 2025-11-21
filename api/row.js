@@ -1,5 +1,4 @@
-console.log("METHOD:", req.method);
-console.log("RAW BODY:", req.body);
+import fetch from "node-fetch";
 
 export default async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
@@ -39,5 +38,5 @@ export default async function handler(req, res) {
     return res.status(resp.status).json(data);
   }
 
-  res.status(405).send("Method Not Allowed");
+  return res.status(405).send("Method Not Allowed");
 }
