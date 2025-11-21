@@ -112,7 +112,11 @@
 <div id="modalOverlay"><img id="modalImage" src="" /></div>
 
 <script>
+// DOM references (REQUIRED FIX)
 const api = axios.create({ baseURL: "/api" });
+const formCard = document.getElementById('formCard');
+const parcelForm = document.getElementById('parcelForm');
+const formMsg = document.getElementById('formMsg');
 
 function toLocalDate(iso){
   if (!iso) return '';
@@ -189,7 +193,6 @@ async function openEdit(id){
 
     document.getElementById('formTitle').innerText = `Edit record ${id}`;
 
-    // FIXED parcel_type handling
     if (r.parcel_type && r.parcel_type.id) {
       document.getElementById('parcel_type').value = r.parcel_type.id;
     } else {
@@ -207,6 +210,8 @@ async function openEdit(id){
     document.getElementById('remarks').value = r.remarks || '';
     document.getElementById('processed').checked = !!r.processed;
 
+    formMsg.innerText = "";
+
     formCard.style.display='block';
     window.scrollTo({top:formCard.offsetTop-20,behavior:'smooth'});
   } catch(err){
@@ -217,8 +222,25 @@ async function openEdit(id){
 
 function openFormForNew(){
   editingRowId = null;
+
   parcelForm.reset();
+
+  // Clear file inputs
+  document.getElementById("picture_parcel").value = "";
+  document.getElementById("picture_content").value = "";
+  document.getElementById("picture_paperwork").value = "";
+
+  document.getElementById("picturePreview").innerHTML = "";
+  document.getElementById("contentPreview").innerHTML = "";
+  document.getElementById("paperworkPreview").innerHTML = "";
+
+  document.getElementById("parcel_type").value = "";
+
+  formMsg.innerText = "";
+  document.getElementById('formTitle').innerText = "New record";
+
   formCard.style.display='block';
+  window.scrollTo({top:formCard.offsetTop-20,behavior:'smooth'});
 }
 
 function closeForm(){
@@ -232,7 +254,24 @@ parcelForm.addEventListener('submit', async e=>{
   try{
     const payload = await buildPayloadFromForm();
 
-    if(editingRowId !== null){   // FIXED
+    // Prevent submitting totally empty records
+    if (editingRowId === null) {
+      const meaningful =
+        payload.parcel_type ||
+        payload.sender ||
+        payload.recipient ||
+        payload.addressee ||
+        payload.content ||
+        payload.stored ||
+        payload.remarks;
+
+      if (!meaningful) {
+        formMsg.innerText = "Please fill at least one field.";
+        return;
+      }
+    }
+
+    if(editingRowId !== null){
       await api.patch(`/row?id=${editingRowId}`, payload);
     } else {
       await api.post("/rows", payload);
@@ -252,7 +291,7 @@ async function buildPayloadFromForm(){
 
   const get = name => form.get(name) || null;
 
-  // FIXED parcel_type: never send 0
+  // Prevent 0 value for select
   let pt = get("parcel_type");
   data.parcel_type = pt ? Number(pt) : null;
 
