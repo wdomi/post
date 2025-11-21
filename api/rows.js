@@ -12,12 +12,10 @@ module.exports = async function handler(req, res) {
   if (req.method === "GET") {
     const showProcessed = req.query.processed === "true";
 
-    // If toggle is OFF → hide processed AND hide rows where processed is null/empty
+    // Toggle: show all rows OR only unprocessed rows
     const params = showProcessed
       ? "/?user_field_names=true&page_size=200"
-      : "/?user_field_names=true&page_size=200"
-        + "&filters[processed__boolean]=false"
-        + "&filters[processed__empty]=true";
+      : "/?user_field_names=true&page_size=200&filters[processed__boolean]=false";
 
     const resp = await fetch(base + params, {
       headers: { Authorization: "Token " + BASEROW_TOKEN }
