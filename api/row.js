@@ -15,12 +15,18 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "PATCH") {
-    const payload = req.body;
+    let payload = req.body;
+
+    if (typeof payload === "string") {
+      try {
+        payload = JSON.parse(payload);
+      } catch {}
+    }
 
     const resp = await fetch(base + "/", {
       method: "PATCH",
       headers: {
-        Authorization: "Token " + BASEROW_TOKEN,
+        Authorization: `Token ${BASEROW_TOKEN}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
