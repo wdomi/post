@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Keller's incoming parcels — Baserow UI </title>
-  <link rel="icon" href="favicon.png" type="image/png">
+  <title>Keller's incoming parcels — Baserow UI</title>
+  <link rel="icon" href="favicon.png" type="image/png"> 
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
   <style>
@@ -68,6 +68,7 @@
         <div>
           <label>parcel_type</label>
           <select id="parcel_type" name="parcel_type">
+            <option value="">-- choose --</option>
             <option value="4534608">package</option>
             <option value="4534609">letter</option>
             <option value="4534610">cooled parcel</option>
@@ -85,23 +86,9 @@
         <div><label>stored</label><textarea id="stored" name="stored" rows="2"></textarea></div>
         <div><label>remarks</label><textarea id="remarks" name="remarks" rows="2"></textarea></div>
 
-        <div>
-          <label>picture_parcel (file)</label>
-          <input id="picture_parcel" type="file" multiple />
-          <div id="picturePreview" class="file-preview"></div>
-        </div>
-
-        <div>
-          <label>picture_content (file)</label>
-          <input id="picture_content" type="file" multiple />
-          <div id="contentPreview" class="file-preview"></div>
-        </div>
-
-        <div>
-          <label>picture_paperwork (file)</label>
-          <input id="picture_paperwork" type="file" multiple />
-          <div id="paperworkPreview" class="file-preview"></div>
-        </div>
+        <div><label>picture_parcel (file)</label><input id="picture_parcel" type="file" multiple /><div id="picturePreview" class="file-preview"></div></div>
+        <div><label>picture_content (file)</label><input id="picture_content" type="file" multiple /><div id="contentPreview" class="file-preview"></div></div>
+        <div><label>picture_paperwork (file)</label><input id="picture_paperwork" type="file" multiple /><div id="paperworkPreview" class="file-preview"></div></div>
 
         <div class="checkbox-center">
           <label>processed</label>
@@ -135,16 +122,9 @@ function toLocalDate(iso){
 
 let editingRowId = null;
 
-// cache DOM elements explicitly (safer than relying on globals)
-const parcelForm   = document.getElementById('parcelForm');
-const formCard     = document.getElementById('formCard');
-const formMsg      = document.getElementById('formMsg');
-
 document.getElementById('newBtn').onclick = openFormForNew;
 document.getElementById('refreshBtn').onclick = fetchRows;
 document.getElementById('cancelBtn').onclick = closeForm;
-
-// ======================= FETCH LIST =======================
 
 async function fetchRows(){
   const container=document.getElementById('rowsContainer');
@@ -201,8 +181,6 @@ function renderRows(rows){
   container.innerHTML = html;
 }
 
-// ======================= EDIT FORM =======================
-
 async function openEdit(id){
   try{
     const r = (await api.get(`/row?id=${id}`)).data;
@@ -210,7 +188,14 @@ async function openEdit(id){
     editingRowId = id;
 
     document.getElementById('formTitle').innerText = `Edit record ${id}`;
-    document.getElementById('parcel_type').value = r.parcel_type?.id || r.parcel_type;
+
+    // FIXED parcel_type handling
+    if (r.parcel_type && r.parcel_type.id) {
+      document.getElementById('parcel_type').value = r.parcel_type.id;
+    } else {
+      document.getElementById('parcel_type').value = "";
+    }
+
     document.getElementById('sender').value = r.sender || '';
     document.getElementById('recipient').value = r.recipient || '';
     document.getElementById('addressee').value = r.addressee || '';
@@ -240,8 +225,6 @@ function closeForm(){
   formCard.style.display='none';
 }
 
-// ======================= SAVE FORM =======================
-
 parcelForm.addEventListener('submit', async e=>{
   e.preventDefault();
   formMsg.innerText='Saving...';
@@ -249,11 +232,9 @@ parcelForm.addEventListener('submit', async e=>{
   try{
     const payload = await buildPayloadFromForm();
 
-    if (editingRowId !== null) {
-      // EDIT EXISTING
+    if(editingRowId !== null){   // FIXED
       await api.patch(`/row?id=${editingRowId}`, payload);
     } else {
-      // CREATE NEW
       await api.post("/rows", payload);
     }
 
@@ -265,15 +246,16 @@ parcelForm.addEventListener('submit', async e=>{
   }
 });
 
-// ======================= BUILD PAYLOAD =======================
-
 async function buildPayloadFromForm(){
   const form = new FormData(parcelForm);
   const data = {};
 
   const get = name => form.get(name) || null;
 
-  data.parcel_type = Number(get("parcel_type"));
+  // FIXED parcel_type: never send 0
+  let pt = get("parcel_type");
+  data.parcel_type = pt ? Number(pt) : null;
+
   data.sender = get("sender");
   data.recipient = get("recipient");
   data.addressee = get("addressee");
@@ -305,8 +287,6 @@ async function buildPayloadFromForm(){
 
   return data;
 }
-
-// ======================= MODAL PREVIEW =======================
 
 const modalOverlay = document.getElementById('modalOverlay');
 const modalImage = document.getElementById('modalImage');
