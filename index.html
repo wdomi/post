@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Keller's incoming parcels — Baserow UI</title>
   <link rel="icon" href="favicon.png" type="image/png"> 
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
   <style>
     :root{--bg:#f6f8fa;--panel:#ffffff;--muted:#6a737d;--accent:#0366d6}
@@ -39,6 +40,7 @@
 <div class="wrap">
 
   <header>
+    <link rel="icon" href="favicon.png" type="image/png"> 
     <div>
       <h1>Keller's incoming parcels — Baserow viewer/editor</h1>
       <p class="lead">Table ID: <strong>745937</strong> — Database ID: <strong>323904</strong></p>
@@ -64,7 +66,6 @@
     <form id="parcelForm">
       <div class="grid">
 
-        <!-- order begins here -->
         <div>
           <label>parcel_type</label>
           <select id="parcel_type" name="parcel_type">
@@ -119,7 +120,7 @@
           <label>remarks</label>
           <textarea id="remarks" name="remarks" rows="2"></textarea>
         </div>
-        <!-- file fields -->
+
         <div>
           <label>picture_parcel (file)</label>
           <input id="picture_parcel" name="picture_parcel" type="file" multiple />
@@ -160,33 +161,8 @@
 <div id="modalOverlay"><img id="modalImage" src="" /></div>
 
 <script>
-/*
-  Safe client-side UI:
-  - No API token present here.
-  - All requests go to serverless endpoints on the same origin:
-      GET  /api/rows          -> list rows (GET)
-      POST /api/rows          -> create row (POST)
-      GET  /api/row?id=ID     -> get one row (GET)
-      PATCH /api/row?id=ID    -> update row (PATCH)
-      POST /api/upload        -> upload files (multipart/form-data)
-*/
-
-/* DOM refs */
-const formCard = document.getElementById('formCard');
-const parcelForm = document.getElementById('parcelForm');
-const formMsg = document.getElementById('formMsg');
-const rowsContainer = document.getElementById('rowsContainer');
-
-function toLocalDate(iso){
-  if(!iso) return '';
-  const d = new Date(iso);
-  const pad = n => String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
-
 let editingRowId = null;
 
-/* Confirm archive behaviour (same as before) */
 document.getElementById('processed').addEventListener('change', function(){
   if(this.checked){
     if(!confirm("Are you sure you want to archive this? It will not be visible to you in the list anymore.")){
@@ -195,35 +171,37 @@ document.getElementById('processed').addEventListener('change', function(){
   }
 });
 
-/* UI button wiring */
 document.getElementById('newBtn').onclick = ()=>openFormForNew();
 document.getElementById('refreshBtn').onclick = ()=>fetchRows();
 document.getElementById('cancelBtn').onclick = ()=>closeForm();
 
-/* -------- Fetch rows (list) -------- */
+function toLocalDate(iso){ 
+  if(!iso) return ''; 
+  const d = new Date(iso); 
+  const pad = n => String(n).padStart(2,'0'); 
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
 async function fetchRows(){
-  rowsContainer.innerHTML='Loading...';
+  const container = document.getElementById('rowsContainer');
+  container.innerHTML = 'Loading...';
   try{
-    const resp = await fetch('/api/rows');
-    if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    // data may be Baserow's { results: [...] } or an array directly from your API wrapper
-    const rows = data.results || data;
-    renderRows(rows);
+    const resp = await axios.get('/api/rows');
+    renderRows(resp.data.results);
   }catch(err){
     console.error(err);
-    rowsContainer.innerHTML='<div class="muted">Failed to load rows</div>';
+    container.innerHTML = '<div class="muted">Failed to load rows</div>';
   }
 }
 
-/* -------- Render table -------- */
 function renderRows(rows){
-  if(!rows || !rows.length){ rowsContainer.innerHTML='<div class="muted">No records</div>'; return; }
+  const container = document.getElementById('rowsContainer');
+  if(!rows.length){ container.innerHTML='<div class="muted">No records</div>'; return; }
 
-  let html = '<table><thead><tr><th>ID</th><th>parcel_type</th><th>to</th><th>sender</th><th>sent_on</th><th>collected_on</th><th>processed</th><th>actions</th></tr></thead><tbody>';
+  let html='<table><thead><tr><th>ID</th><th>parcel_type</th><th>to</th><th>sender</th><th>sent_on</th><th>collected_on</th><th>processed</th><th>actions</th></tr></thead><tbody>';
 
   rows.forEach(r=>{
-    html += `
+    html+=`
       <tr data-rowid="${r.id}">
         <td>${r.id}</td>
         <td>${r.parcel_type?.value || ''}</td>
@@ -236,20 +214,17 @@ function renderRows(rows){
       </tr>`;
   });
 
-  html += '</tbody></table>';
-  rowsContainer.innerHTML = html;
+  html+='</tbody></table>';
+  container.innerHTML = html;
 
   document.querySelectorAll('[data-edit]').forEach(btn =>
     btn.addEventListener('click', () => openEdit(btn.dataset.edit))
   );
 }
 
-/* -------- Open edit view (load single row) -------- */
 async function openEdit(id){
   try{
-    const resp = await fetch(`/api/row?id=${encodeURIComponent(id)}`);
-    if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const r = await resp.json();
+    const r = (await axios.get(`/api/row?id=${id}`)).data;
 
     editingRowId = id;
 
@@ -272,12 +247,11 @@ async function openEdit(id){
       div.innerHTML='';
       if(arr){
         arr.forEach(f=>{
-          // f could be { url, download_url, thumbnail_url } or similar
-          const url = f?.url || f?.download_url || null;
+          const url = f.url || f.download_url;
           if(url){
-            const img=document.createElement('img');
+            const img = document.createElement('img');
             img.src = f.thumbnail_url || url;
-            img.onclick = ()=>showImageModal(url);
+            img.onclick = () => showImageModal(url);
             div.appendChild(img);
           }
         });
@@ -296,11 +270,10 @@ async function openEdit(id){
   }
 }
 
-/* -------- Form open/close -------- */
 function openFormForNew(){
   editingRowId = null;
   parcelForm.reset();
-  document.getElementById('formTitle').innerText = 'New record';
+  document.getElementById('formTitle').innerText='New record';
   document.getElementById('picturePreview').innerHTML='';
   document.getElementById('contentPreview').innerHTML='';
   document.getElementById('paperworkPreview').innerHTML='';
@@ -314,7 +287,6 @@ function closeForm(){
   formMsg.innerText = '';
 }
 
-/* -------- Submit form (create or update) -------- */
 parcelForm.addEventListener('submit', async e=>{
   e.preventDefault();
   formMsg.innerText='Saving...';
@@ -323,20 +295,10 @@ parcelForm.addEventListener('submit', async e=>{
     const payload = await buildPayloadFromForm();
 
     if(editingRowId){
-      const resp = await fetch(`/api/row?id=${encodeURIComponent(editingRowId)}`, {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-      });
-      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      await axios.patch(`/api/row?id=${editingRowId}`, payload);
       formMsg.innerText='Updated.';
     } else {
-      const resp = await fetch('/api/rows', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-      });
-      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      await axios.post('/api/rows', payload);
       formMsg.innerText='Created.';
     }
 
@@ -348,7 +310,6 @@ parcelForm.addEventListener('submit', async e=>{
   }
 });
 
-/* -------- Build payload and upload files -------- */
 async function buildPayloadFromForm(){
   const data = {};
   const form = new FormData(parcelForm);
@@ -370,21 +331,17 @@ async function buildPayloadFromForm(){
     const files = document.getElementById(inputId).files;
     if(!files.length) return;
 
-    data[fieldName] = data[fieldName] || [];
+    data[fieldName] = [];
 
     for(let f of files){
       const fd = new FormData();
       fd.append("file", f);
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: fd
+      const res = await axios.post("/api/upload", fd, {
+        headers: {"Content-Type": "multipart/form-data"}
       });
-      if(!res.ok) throw new Error(`Upload failed ${res.status}`);
-      const resJson = await res.json();
-      // server may return { file: {...} } or the file object directly
-      const fileObj = resJson.file || resJson;
-      data[fieldName].push(fileObj);
+
+      data[fieldName].push(res.data.file);
     }
   }
 
@@ -395,13 +352,11 @@ async function buildPayloadFromForm(){
   return data;
 }
 
-/* -------- Image modal -------- */
 const modalOverlay = document.getElementById('modalOverlay');
 const modalImage = document.getElementById('modalImage');
 modalOverlay.onclick = ()=>{ modalOverlay.style.display='none'; modalImage.src=''; };
 function showImageModal(url){ modalImage.src=url; modalOverlay.style.display='flex'; }
 
-/* Initial load */
 fetchRows();
 </script>
 
