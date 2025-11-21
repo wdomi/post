@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Keller's incoming parcels — Baserow UI  </title>
+  <title>Keller's incoming parcels — Baserow UI</title>
   <link rel="icon" href="favicon.png" type="image/png"> 
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
@@ -49,7 +49,7 @@
       <button id="refreshBtn">Refresh</button>
       <button id="newBtn" class="ghost">New record</button>
 
-      <!-- NEW: Toggle processed visibility -->
+      <!-- Toggle to show/hide processed rows -->
       <label style="display:flex;gap:6px;align-items:center;margin-left:12px;">
         <input type="checkbox" id="showProcessedToggle" />
         Show processed
@@ -90,9 +90,23 @@
         <div><label>stored</label><textarea id="stored" name="stored" rows="2"></textarea></div>
         <div><label>remarks</label><textarea id="remarks" name="remarks" rows="2"></textarea></div>
 
-        <div><label>picture_parcel (file)</label><input id="picture_parcel" type="file" multiple /><div id="picturePreview" class="file-preview"></div></div>
-        <div><label>picture_content (file)</label><input id="picture_content" type="file" multiple /><div id="contentPreview" class="file-preview"></div></div>
-        <div><label>picture_paperwork (file)</label><input id="picture_paperwork" type="file" multiple /><div id="paperworkPreview" class="file-preview"></div></div>
+        <div>
+          <label>picture_parcel (file)</label>
+          <input id="picture_parcel" type="file" multiple />
+          <div id="picturePreview" class="file-preview"></div>
+        </div>
+
+        <div>
+          <label>picture_content (file)</label>
+          <input id="picture_content" type="file" multiple />
+          <div id="contentPreview" class="file-preview"></div>
+        </div>
+
+        <div>
+          <label>picture_paperwork (file)</label>
+          <input id="picture_paperwork" type="file" multiple />
+          <div id="paperworkPreview" class="file-preview"></div>
+        </div>
 
         <div class="checkbox-center">
           <label>processed</label>
@@ -117,10 +131,12 @@
 
 <script>
 const api = axios.create({ baseURL: "/api" });
-const formCard = document.getElementById('formCard');
+
+// DOM refs
+const formCard   = document.getElementById('formCard');
 const parcelForm = document.getElementById('parcelForm');
-const formMsg = document.getElementById('formMsg');
-const toggle = document.getElementById('showProcessedToggle');
+const formMsg    = document.getElementById('formMsg');
+const toggle     = document.getElementById('showProcessedToggle');
 
 function toLocalDate(iso){
   if (!iso) return '';
@@ -130,12 +146,12 @@ function toLocalDate(iso){
 
 let editingRowId = null;
 
-// NEW: toggle → reload table
-toggle.addEventListener("change", fetchRows);
-
 document.getElementById('newBtn').onclick = openFormForNew;
 document.getElementById('refreshBtn').onclick = fetchRows;
 document.getElementById('cancelBtn').onclick = closeForm;
+toggle.addEventListener("change", fetchRows);
+
+// =============== LIST & FILTER ===============
 
 async function fetchRows(){
   const container=document.getElementById('rowsContainer');
@@ -184,14 +200,11 @@ function renderRows(rows){
         <td>${r.sender || ''}</td>
         <td>${toLocalDate(r.sent_on)}</td>
         <td>${toLocalDate(r.collected_on)}</td>
-
-        <!-- NEW: checkbox for processed -->
         <td>
-          <input type="checkbox" 
-                 ${r.processed ? "checked" : ""} 
+          <input type="checkbox"
+                 ${r.processed ? "checked" : ""}
                  onchange="toggleProcessed(${r.id}, this.checked)" />
         </td>
-
         <td><button class="ghost small" onclick="openEdit(${r.id})">Edit</button></td>
       </tr>`;
   }
@@ -200,7 +213,8 @@ function renderRows(rows){
   container.innerHTML = html;
 }
 
-// NEW: Update processed instantly
+// =============== INLINE PROCESSED TOGGLE ===============
+
 async function toggleProcessed(id, value){
   try {
     await api.patch(`/row?id=${id}`, { processed: value });
@@ -210,6 +224,8 @@ async function toggleProcessed(id, value){
     alert("Could not update processed status.");
   }
 }
+
+// =============== EDIT / NEW FORM ===============
 
 async function openEdit(id){
   try{
@@ -269,6 +285,8 @@ function closeForm(){
   formCard.style.display='none';
 }
 
+// =============== SAVE FORM (NEW / EDIT) ===============
+
 parcelForm.addEventListener('submit', async e=>{
   e.preventDefault();
   formMsg.innerText='Saving...';
@@ -305,6 +323,8 @@ parcelForm.addEventListener('submit', async e=>{
     formMsg.innerText='Save failed.';
   }
 });
+
+// =============== BUILD PAYLOAD ===============
 
 async function buildPayloadFromForm(){
   const form = new FormData(parcelForm);
@@ -346,6 +366,8 @@ async function buildPayloadFromForm(){
 
   return data;
 }
+
+// =============== MODAL ===============
 
 const modalOverlay = document.getElementById('modalOverlay');
 const modalImage = document.getElementById('modalImage');
