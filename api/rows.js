@@ -6,13 +6,18 @@ module.exports = async function handler(req, res) {
 
   const base = `https://api.baserow.io/api/database/rows/table/${TABLE_ID}`;
 
-  // GET ROWS (supports "processed" toggle)
+  // ============================
+  // GET ROWS (supports processed toggle)
+  // ============================
   if (req.method === "GET") {
     const showProcessed = req.query.processed === "true";
 
+    // If toggle is OFF → hide processed AND hide rows where processed is null/empty
     const params = showProcessed
       ? "/?user_field_names=true&page_size=200"
-      : "/?user_field_names=true&page_size=200&filters[processed__boolean]=false";
+      : "/?user_field_names=true&page_size=200"
+        + "&filters[processed__boolean]=false"
+        + "&filters[processed__empty]=true";
 
     const resp = await fetch(base + params, {
       headers: { Authorization: "Token " + BASEROW_TOKEN }
@@ -22,7 +27,9 @@ module.exports = async function handler(req, res) {
     return res.status(resp.status).json(data);
   }
 
+  // ============================
   // CREATE NEW ROW
+  // ============================
   if (req.method === "POST") {
     let payload = req.body;
 
@@ -33,7 +40,7 @@ module.exports = async function handler(req, res) {
     }
 
     const resp = await fetch(
-      base + "/?user_field_names=true", // IMPORTANT!
+      base + "/?user_field_names=true",
       {
         method: "POST",
         headers: {
