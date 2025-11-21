@@ -40,7 +40,7 @@
 <div class="wrap">
 
   <header>
-    <link rel="icon" href="favicon.png" type="image/png"> 
+      <link rel="icon" href="favicon.png" type="image/png"> 
     <div>
       <h1>Keller's incoming parcels — Baserow viewer/editor</h1>
       <p class="lead">Table ID: <strong>745937</strong> — Database ID: <strong>323904</strong></p>
@@ -66,6 +66,7 @@
     <form id="parcelForm">
       <div class="grid">
 
+        <!-- order begins here -->
         <div>
           <label>parcel_type</label>
           <select id="parcel_type" name="parcel_type">
@@ -120,7 +121,7 @@
           <label>remarks</label>
           <textarea id="remarks" name="remarks" rows="2"></textarea>
         </div>
-
+        <!-- file fields -->
         <div>
           <label>picture_parcel (file)</label>
           <input id="picture_parcel" name="picture_parcel" type="file" multiple />
@@ -161,6 +162,16 @@
 <div id="modalOverlay"><img id="modalImage" src="" /></div>
 
 <script>
+const BASE_URL = 'https://api.baserow.io';
+const TABLE_ID = 745937;
+
+const axiosInstance = axios.create({
+  baseURL: BASE_URL,
+  headers: { Authorization: `Token ${API_TOKEN}` }
+});
+
+function toLocalDate(iso){ if(!iso) return ''; const d=new Date(iso); const pad=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}` }
+
 let editingRowId = null;
 
 document.getElementById('processed').addEventListener('change', function(){
@@ -175,30 +186,26 @@ document.getElementById('newBtn').onclick = ()=>openFormForNew();
 document.getElementById('refreshBtn').onclick = ()=>fetchRows();
 document.getElementById('cancelBtn').onclick = ()=>closeForm();
 
-function toLocalDate(iso){ 
-  if(!iso) return ''; 
-  const d = new Date(iso); 
-  const pad = n => String(n).padStart(2,'0'); 
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
-
 async function fetchRows(){
-  const container = document.getElementById('rowsContainer');
-  container.innerHTML = 'Loading...';
+  const container=document.getElementById('rowsContainer');
+  container.innerHTML='Loading...';
   try{
-    const resp = await axios.get('/api/rows');
+    const resp = await axiosInstance.get(`/api/database/rows/table/${TABLE_ID}/`, {
+      params:{user_field_names:true,page_size:200}
+    });
     renderRows(resp.data.results);
   }catch(err){
     console.error(err);
-    container.innerHTML = '<div class="muted">Failed to load rows</div>';
+    container.innerHTML='<div class="muted">Failed to load rows</div>';
   }
 }
 
 function renderRows(rows){
-  const container = document.getElementById('rowsContainer');
+  const container=document.getElementById('rowsContainer');
   if(!rows.length){ container.innerHTML='<div class="muted">No records</div>'; return; }
 
-  let html='<table><thead><tr><th>ID</th><th>parcel_type</th><th>to</th><th>sender</th><th>sent_on</th><th>collected_on</th><th>processed</th><th>actions</th></tr></thead><tbody>';
+  let html='<table><thead><tr><th>ID</th><th>parcel_type</th><th>to</th><th>sender</th><th>sent_on</th><th>collected_on</th><th>processed</th><th>actions</th>
+</tr></thead><tbody>';
 
   rows.forEach(r=>{
     html+=`
@@ -215,7 +222,7 @@ function renderRows(rows){
   });
 
   html+='</tbody></table>';
-  container.innerHTML = html;
+  container.innerHTML=html;
 
   document.querySelectorAll('[data-edit]').forEach(btn =>
     btn.addEventListener('click', () => openEdit(btn.dataset.edit))
@@ -224,9 +231,11 @@ function renderRows(rows){
 
 async function openEdit(id){
   try{
-    const r = (await axios.get(`/api/row?id=${id}`)).data;
+    const r = (await axiosInstance.get(`/api/database/rows/table/${TABLE_ID}/${id}/`, {
+      params:{user_field_names:true}
+    })).data;
 
-    editingRowId = id;
+    editingRowId=id;
 
     document.getElementById('formTitle').innerText = `Edit record ${id}`;
 
@@ -249,9 +258,9 @@ async function openEdit(id){
         arr.forEach(f=>{
           const url = f.url || f.download_url;
           if(url){
-            const img = document.createElement('img');
-            img.src = f.thumbnail_url || url;
-            img.onclick = () => showImageModal(url);
+            const img=document.createElement('img');
+            img.src=f.thumbnail_url || url;
+            img.onclick=()=>showImageModal(url);
             div.appendChild(img);
           }
         });
@@ -271,7 +280,7 @@ async function openEdit(id){
 }
 
 function openFormForNew(){
-  editingRowId = null;
+  editingRowId=null;
   parcelForm.reset();
   document.getElementById('formTitle').innerText='New record';
   document.getElementById('picturePreview').innerHTML='';
@@ -283,8 +292,8 @@ function openFormForNew(){
 
 function closeForm(){
   formCard.style.display='none';
-  editingRowId = null;
-  formMsg.innerText = '';
+  editingRowId=null;
+  formMsg.innerText='';
 }
 
 parcelForm.addEventListener('submit', async e=>{
@@ -295,10 +304,12 @@ parcelForm.addEventListener('submit', async e=>{
     const payload = await buildPayloadFromForm();
 
     if(editingRowId){
-      await axios.patch(`/api/row?id=${editingRowId}`, payload);
+      await axiosInstance.patch(`/api/database/rows/table/${TABLE_ID}/${editingRowId}/`,
+        payload, {params:{user_field_names:true}});
       formMsg.innerText='Updated.';
     } else {
-      await axios.post('/api/rows', payload);
+      await axiosInstance.post(`/api/database/rows/table/${TABLE_ID}/`,
+        payload, {params:{user_field_names:true}});
       formMsg.innerText='Created.';
     }
 
@@ -337,7 +348,7 @@ async function buildPayloadFromForm(){
       const fd = new FormData();
       fd.append("file", f);
 
-      const res = await axios.post("/api/upload", fd, {
+      const res = await axiosInstance.post("/api/user-files/upload-file/", fd, {
         headers: {"Content-Type": "multipart/form-data"}
       });
 
