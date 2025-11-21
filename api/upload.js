@@ -1,32 +1,30 @@
-const formidable = require("formidable");
-const fs = require("fs");
-const FormData = require("form-data");
-const fetch = require("node-fetch");
-
-exports.config = {
-  api: { bodyParser: false }
+// upload.js — upload file to Baserow
+export const config = {
+  api: { bodyParser: false } // Required for file uploads
 };
 
-module.exports = async function handler(req, res) {
+import formidable from "formidable";
+import fs from "fs";
+import FormData from "form-data";
+import fetch from "node-fetch";
+
+export default async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
 
   if (req.method !== "POST") {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const form = formidable({
-    multiples: false,
-    uploadDir: "/tmp",
-    keepExtensions: true
-  });
+  // Parse multipart file upload
+  const form = formidable({ multiples: false });
 
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(400).json({ error: err });
 
     const file = files.file;
-    if (!file)
-      return res.status(400).json({ error: "Missing file upload" });
+    if (!file) return res.status(400).json({ error: "Missing file upload" });
 
+    // Send file to Baserow
     const fd = new FormData();
     fd.append(
       "file",
@@ -46,4 +44,4 @@ module.exports = async function handler(req, res) {
     const data = await uploadResp.json();
     return res.status(uploadResp.status).json(data);
   });
-};
+}
