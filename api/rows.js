@@ -1,6 +1,6 @@
-import fetch from "node-fetch";
+const fetch = require("node-fetch");
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
   const TABLE_ID = 745937;
 
@@ -42,4 +42,4 @@ export default async function handler(req, res) {
   }
 
   return res.status(405).send("Method Not Allowed");
-}
+};
