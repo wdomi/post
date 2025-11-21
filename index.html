@@ -205,7 +205,8 @@ function renderRows(rows){
   const container=document.getElementById('rowsContainer');
   if(!rows.length){ container.innerHTML='<div class="muted">No records</div>'; return; }
 
-  let html='<table><thead><tr><th>ID</th><th>parcel_type</th><th>to</th><th>sender</th><th>sent_on</th><th>processed</th><th>actions</th></tr></thead><tbody>';
+  let html='<table><thead><tr><th>ID</th><th>parcel_type</th><th>to</th><th>sender</th><th>sent_on</th><th>collected_on</th><th>processed</th><th>actions</th>
+</tr></thead><tbody>';
 
   rows.forEach(r=>{
     html+=`
@@ -215,6 +216,7 @@ function renderRows(rows){
         <td>${r.recipient || ''}</td>
         <td>${r.sender || ''}</td>
         <td>${r.sent_on ? toLocalDate(r.sent_on) : ''}</td>
+        <td>${r.collected_on ? toLocalDate(r.collected_on) : ''}</td>
         <td>${r.processed ? '✅' : ''}</td>
         <td class="actions"><button class="ghost small" data-edit="${r.id}">Edit</button></td>
       </tr>`;
