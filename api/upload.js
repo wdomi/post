@@ -1,13 +1,13 @@
-export const config = {
+const formidable = require("formidable");
+const fs = require("fs");
+const FormData = require("form-data");
+const fetch = require("node-fetch");
+
+exports.config = {
   api: { bodyParser: false }
 };
 
-import formidable from "formidable";
-import fs from "fs";
-import FormData from "form-data";
-import fetch from "node-fetch";
-
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
 
   if (req.method !== "POST") {
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   const form = formidable({
     multiples: false,
-    uploadDir: "/tmp",       // Vercel temp directory
+    uploadDir: "/tmp",
     keepExtensions: true
   });
 
@@ -46,4 +46,4 @@ export default async function handler(req, res) {
     const data = await uploadResp.json();
     return res.status(uploadResp.status).json(data);
   });
-}
+};
