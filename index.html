@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Keller's incoming parcels — Baserow UI </title>
+  <title>Keller's incoming parcels — Baserow UI</title>
   <link rel="icon" href="favicon.png" type="image/png"> 
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
@@ -85,9 +85,23 @@
         <div><label>stored</label><textarea id="stored" name="stored" rows="2"></textarea></div>
         <div><label>remarks</label><textarea id="remarks" name="remarks" rows="2"></textarea></div>
 
-        <div><label>picture_parcel (file)</label><input id="picture_parcel" type="file" multiple /><div id="picturePreview" class="file-preview"></div></div>
-        <div><label>picture_content (file)</label><input id="picture_content" type="file" multiple /><div id="contentPreview" class="file-preview"></div></div>
-        <div><label>picture_paperwork (file)</label><input id="picture_paperwork" type="file" multiple /><div id="paperworkPreview" class="file-preview"></div></div>
+        <div>
+          <label>picture_parcel (file)</label>
+          <input id="picture_parcel" type="file" multiple />
+          <div id="picturePreview" class="file-preview"></div>
+        </div>
+
+        <div>
+          <label>picture_content (file)</label>
+          <input id="picture_content" type="file" multiple />
+          <div id="contentPreview" class="file-preview"></div>
+        </div>
+
+        <div>
+          <label>picture_paperwork (file)</label>
+          <input id="picture_paperwork" type="file" multiple />
+          <div id="paperworkPreview" class="file-preview"></div>
+        </div>
 
         <div class="checkbox-center">
           <label>processed</label>
@@ -124,6 +138,8 @@ let editingRowId = null;
 document.getElementById('newBtn').onclick = openFormForNew;
 document.getElementById('refreshBtn').onclick = fetchRows;
 document.getElementById('cancelBtn').onclick = closeForm;
+
+// ======================= FETCH LIST =======================
 
 async function fetchRows(){
   const container=document.getElementById('rowsContainer');
@@ -171,7 +187,7 @@ function renderRows(rows){
         <td>${r.sender || ''}</td>
         <td>${toLocalDate(r.sent_on)}</td>
         <td>${toLocalDate(r.collected_on)}</td>
-        <td>${r.processed ? '✅' : ''}</td>
+        <td>${r.processed ? '�Check' : ''}</td>
         <td><button class="ghost small" onclick="openEdit(${r.id})">Edit</button></td>
       </tr>`;
   }
@@ -179,6 +195,8 @@ function renderRows(rows){
   html += `</tbody></table>`;
   container.innerHTML = html;
 }
+
+// ======================= EDIT FORM =======================
 
 async function openEdit(id){
   try{
@@ -217,6 +235,8 @@ function closeForm(){
   formCard.style.display='none';
 }
 
+// ======================= SAVE FORM =======================
+
 parcelForm.addEventListener('submit', async e=>{
   e.preventDefault();
   formMsg.innerText='Saving...';
@@ -225,13 +245,9 @@ parcelForm.addEventListener('submit', async e=>{
     const payload = await buildPayloadFromForm();
 
     if(editingRowId){
-      await api.patch(`/row?id=${editingRowId}`, JSON.stringify(payload), {
-        headers: { "Content-Type": "application/json" }
-      });
+      await api.patch(`/row?id=${editingRowId}`, payload);
     } else {
-      await api.post("/rows", JSON.stringify(payload), {
-        headers: { "Content-Type": "application/json" }
-      });
+      await api.post("/rows", payload);
     }
 
     formMsg.innerText='Saved!';
@@ -241,6 +257,8 @@ parcelForm.addEventListener('submit', async e=>{
     formMsg.innerText='Save failed.';
   }
 });
+
+// ======================= BUILD PAYLOAD =======================
 
 async function buildPayloadFromForm(){
   const form = new FormData(parcelForm);
@@ -280,6 +298,8 @@ async function buildPayloadFromForm(){
 
   return data;
 }
+
+// ======================= MODAL PREVIEW =======================
 
 const modalOverlay = document.getElementById('modalOverlay');
 const modalImage = document.getElementById('modalImage');
