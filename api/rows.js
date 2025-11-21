@@ -1,3 +1,6 @@
+console.log("METHOD:", req.method);
+console.log("RAW BODY:", req.body);
+
 export default async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
   const TABLE_ID = 745937;
