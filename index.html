@@ -41,7 +41,6 @@
 
   <header>
     <div>
-      <link rel="icon" type="image/png" href="favicon.png" />
       <h1>Keller's incoming parcels — Baserow viewer/editor</h1>
       <p class="lead">Table ID: <strong>745937</strong> — Database ID: <strong>323904</strong></p>
     </div>
@@ -66,7 +65,6 @@
     <form id="parcelForm">
       <div class="grid">
 
-        <!-- order begins here -->
         <div>
           <label>parcel_type</label>
           <select id="parcel_type" name="parcel_type">
@@ -77,68 +75,19 @@
           </select>
         </div>
 
-        <div>
-          <label>sender</label>
-          <input id="sender" name="sender" />
-        </div>
+        <div><label>sender</label><input id="sender" name="sender" /></div>
+        <div><label>to</label><input id="recipient" name="recipient" /></div>
+        <div><label>addressee on parcel</label><input id="addressee" name="addressee" /></div>
+        <div><label>sent_on</label><input id="sent_on" name="sent_on" type="date" /></div>
+        <div><label>collected_on</label><input id="collected_on" name="collected_on" type="date" /></div>
+        <div><label>collected_by</label><input id="collected_by" name="collected_by" /></div>
+        <div><label>content</label><textarea id="content" name="content" rows="2"></textarea></div>
+        <div><label>stored</label><textarea id="stored" name="stored" rows="2"></textarea></div>
+        <div><label>remarks</label><textarea id="remarks" name="remarks" rows="2"></textarea></div>
 
-        <div>
-          <label>to</label>
-          <input id="recipient" name="recipient" />
-        </div>
-
-        <div>
-          <label>addressee on parcel</label>
-          <input id="addressee" name="addressee" />
-        </div>
-
-        <div>
-          <label>sent_on</label>
-          <input id="sent_on" name="sent_on" type="date" />
-        </div>
-
-        <div>
-          <label>collected_on</label>
-          <input id="collected_on" name="collected_on" type="date" />
-        </div>
-
-        <div>
-          <label>collected_by</label>
-          <input id="collected_by" name="collected_by" />
-        </div>
-
-        <div>
-          <label>content</label>
-          <textarea id="content" name="content" rows="2"></textarea>
-        </div>
-
-        <div>
-          <label>stored</label>
-          <textarea id="stored" name="stored" rows="2"></textarea>
-        </div>
-
-        <div>
-          <label>remarks</label>
-          <textarea id="remarks" name="remarks" rows="2"></textarea>
-        </div>
-
-        <div>
-          <label>picture_parcel (file)</label>
-          <input id="picture_parcel" name="picture_parcel" type="file" multiple />
-          <div id="picturePreview" class="file-preview"></div>
-        </div>
-
-        <div>
-          <label>picture_content (file)</label>
-          <input id="picture_content" name="picture_content" type="file" multiple />
-          <div id="contentPreview" class="file-preview"></div>
-        </div>
-
-        <div>
-          <label>picture_paperwork (file)</label>
-          <input id="picture_paperwork" name="picture_paperwork" type="file" multiple />
-          <div id="paperworkPreview" class="file-preview"></div>
-        </div>
+        <div><label>picture_parcel (file)</label><input id="picture_parcel" type="file" multiple /><div id="picturePreview" class="file-preview"></div></div>
+        <div><label>picture_content (file)</label><input id="picture_content" type="file" multiple /><div id="contentPreview" class="file-preview"></div></div>
+        <div><label>picture_paperwork (file)</label><input id="picture_paperwork" type="file" multiple /><div id="paperworkPreview" class="file-preview"></div></div>
 
         <div class="checkbox-center">
           <label>processed</label>
@@ -174,17 +123,9 @@ function toLocalDate(iso){
 
 let editingRowId = null;
 
-document.getElementById('processed').addEventListener('change', function(){
-  if(this.checked){
-    if(!confirm("Are you sure you want to archive this? It will not be visible to you in the list anymore.")){
-      this.checked = false;
-    }
-  }
-});
-
-document.getElementById('newBtn').onclick = ()=>openFormForNew();
-document.getElementById('refreshBtn').onclick = ()=>fetchRows();
-document.getElementById('cancelBtn').onclick = ()=>closeForm();
+document.getElementById('newBtn').onclick = () => openFormForNew();
+document.getElementById('refreshBtn').onclick = () => fetchRows();
+document.getElementById('cancelBtn').onclick = () => closeForm();
 
 async function fetchRows(){
   const container=document.getElementById('rowsContainer');
@@ -224,25 +165,21 @@ function renderRows(rows){
 
   rows.forEach(r=>{
     html += `
-      <tr data-rowid="${r.id}">
+      <tr>
         <td>${r.id}</td>
         <td>${r.parcel_type?.value || ''}</td>
         <td>${r.recipient || ''}</td>
         <td>${r.sender || ''}</td>
-        <td>${r.sent_on ? toLocalDate(r.sent_on) : ''}</td>
-        <td>${r.collected_on ? toLocalDate(r.collected_on) : ''}</td>
+        <td>${toLocalDate(r.sent_on)}</td>
+        <td>${toLocalDate(r.collected_on)}</td>
         <td>${r.processed ? '✅' : ''}</td>
-        <td class="actions"><button class="ghost small" data-edit="${r.id}">Edit</button></td>
+        <td><button class="ghost small" onclick="openEdit(${r.id})">Edit</button></td>
       </tr>
     `;
   });
 
   html += '</tbody></table>';
-  container.innerHTML = html;
-
-  document.querySelectorAll('[data-edit]').forEach(btn =>
-    btn.addEventListener('click', () => openEdit(btn.dataset.edit))
-  );
+  container.innerHTML=html;
 }
 
 async function openEdit(id){
@@ -252,7 +189,7 @@ async function openEdit(id){
     editingRowId = id;
 
     document.getElementById('formTitle').innerText = `Edit record ${id}`;
-    document.getElementById('parcel_type').value = r.parcel_type?.id || r.parcel_type || '';
+    document.getElementById('parcel_type').value = r.parcel_type?.id || r.parcel_type;
     document.getElementById('sender').value = r.sender || '';
     document.getElementById('recipient').value = r.recipient || '';
     document.getElementById('addressee').value = r.addressee || '';
@@ -264,50 +201,23 @@ async function openEdit(id){
     document.getElementById('remarks').value = r.remarks || '';
     document.getElementById('processed').checked = !!r.processed;
 
-    function showThumbs(arr, id){
-      const div = document.getElementById(id);
-      div.innerHTML='';
-      if (arr) {
-        arr.forEach(f=>{
-          const url = f.url || f.download_url;
-          if(url){
-            const img=document.createElement('img');
-            img.src=f.thumbnail_url || url;
-            img.onclick=()=>showImageModal(url);
-            div.appendChild(img);
-          }
-        });
-      }
-    }
-
-    showThumbs(r.picture_parcel,'picturePreview');
-    showThumbs(r.picture_content,'contentPreview');
-    showThumbs(r.picture_paperwork,'paperworkPreview');
-
     formCard.style.display='block';
     window.scrollTo({top:formCard.offsetTop-20,behavior:'smooth'});
 
   }catch(err){
     console.error(err);
-    alert('Failed to fetch row.');
+    alert("Could not load record.");
   }
 }
 
 function openFormForNew(){
-  editingRowId = null;
+  editingRowId=null;
   parcelForm.reset();
-  document.getElementById('formTitle').innerText='New record';
-  document.getElementById('picturePreview').innerHTML='';
-  document.getElementById('contentPreview').innerHTML='';
-  document.getElementById('paperworkPreview').innerHTML='';
   formCard.style.display='block';
-  window.scrollTo({top:formCard.offsetTop-20,behavior:'smooth'});
 }
 
 function closeForm(){
   formCard.style.display='none';
-  editingRowId=null;
-  formMsg.innerText='';
 }
 
 parcelForm.addEventListener('submit', async e=>{
@@ -318,18 +228,21 @@ parcelForm.addEventListener('submit', async e=>{
     const payload = await buildPayloadFromForm();
 
     if(editingRowId){
-      await api.patch(`/row?id=${editingRowId}`, payload);
-      formMsg.innerText='Updated.';
+      await api.patch(`/row?id=${editingRowId}`, payload, {
+        headers: { "Content-Type": "application/json" }
+      });
     } else {
-      await api.post(`/rows`, payload);
-      formMsg.innerText='Created.';
+      await api.post("/rows", payload, {
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
+    formMsg.innerText='Saved!';
     setTimeout(()=>{ closeForm(); fetchRows(); },600);
 
   }catch(err){
     console.error(err);
-    formMsg.innerText='Error.';
+    formMsg.innerText='Save failed.';
   }
 });
 
@@ -355,15 +268,10 @@ async function buildPayloadFromForm(){
     if(!files.length) return;
 
     data[fieldName] = [];
-
     for(let f of files){
       const fd = new FormData();
       fd.append("file", f);
-
-      const res = await api.post("/upload", fd, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-
+      const res = await api.post("/upload", fd);
       data[fieldName].push(res.data.file);
     }
   }
