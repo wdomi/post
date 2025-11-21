@@ -1,5 +1,3 @@
-const fetch = require("node-fetch");
-
 module.exports = async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
   const TABLE_ID = 745937;
