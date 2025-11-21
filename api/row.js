@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
     return res.status(resp.status).json(data);
   }
 
-  // PATCH ROW  (FIXED!)
+  // PATCH ROW (IMPORTANT!!! user_field_names included)
   if (req.method === "PATCH") {
     let payload = req.body;
 
@@ -27,7 +27,7 @@ module.exports = async function handler(req, res) {
     }
 
     const resp = await fetch(
-      base + "/?user_field_names=true",   // <-- THIS FIXES SAVING
+      base + "/?user_field_names=true",     // <-- THIS LINE FIXES SAVING
       {
         method: "PATCH",
         headers: {
