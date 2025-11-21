@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Keller's incoming parcels — Baserow UI</title>
-  <link rel="icon" href="favicon.png" type="image/png"> 
+  <link rel="icon" href="favicon.png" type="image/png">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
   <style>
@@ -135,6 +135,11 @@ function toLocalDate(iso){
 
 let editingRowId = null;
 
+// cache DOM elements explicitly (safer than relying on globals)
+const parcelForm   = document.getElementById('parcelForm');
+const formCard     = document.getElementById('formCard');
+const formMsg      = document.getElementById('formMsg');
+
 document.getElementById('newBtn').onclick = openFormForNew;
 document.getElementById('refreshBtn').onclick = fetchRows;
 document.getElementById('cancelBtn').onclick = closeForm;
@@ -187,7 +192,7 @@ function renderRows(rows){
         <td>${r.sender || ''}</td>
         <td>${toLocalDate(r.sent_on)}</td>
         <td>${toLocalDate(r.collected_on)}</td>
-        <td>${r.processed ? '�Check' : ''}</td>
+        <td>${r.processed ? '✅' : ''}</td>
         <td><button class="ghost small" onclick="openEdit(${r.id})">Edit</button></td>
       </tr>`;
   }
@@ -244,9 +249,11 @@ parcelForm.addEventListener('submit', async e=>{
   try{
     const payload = await buildPayloadFromForm();
 
-    if(editingRowId){
+    if (editingRowId !== null) {
+      // EDIT EXISTING
       await api.patch(`/row?id=${editingRowId}`, payload);
     } else {
+      // CREATE NEW
       await api.post("/rows", payload);
     }
 
