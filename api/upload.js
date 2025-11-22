@@ -1,8 +1,10 @@
 export const config = {
-  api: { bodyParser: false }
+  api: {
+    bodyParser: false,
+  },
 };
 
-const formidable = require("formidable");
+const { formidable } = require("formidable");
 const fs = require("fs");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
@@ -16,7 +18,7 @@ module.exports = async function handler(req, res) {
 
   const form = formidable({
     multiples: false,
-    keepExtensions: true
+    keepExtensions: true,
   });
 
   form.parse(req, async (err, fields, files) => {
@@ -25,30 +27,29 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Form parsing failed" });
     }
 
-    // ✅ FIX: Support formidable v3 format
-    let file = files.file;
-
-    if (Array.isArray(file)) {
-      file = file[0];
-    }
-
-    console.log("FILES RECEIVED:", files);
+    const file = files.file;
+    console.log("FILES:", files);
+    console.log("FILE:", file);
 
     if (!file || !file.filepath) {
-      console.error("NO FILEPATH", files);
+      console.error("NO FILEPATH", file);
       return res.status(400).json({ error: "Missing file upload" });
     }
 
     try {
       const fd = new FormData();
-      fd.append("file", fs.createReadStream(file.filepath), file.originalFilename);
+      fd.append(
+        "file",
+        fs.createReadStream(file.filepath),
+        file.originalFilename
+      );
 
       const uploadResp = await fetch(
         "https://api.baserow.io/api/user-files/upload-file/",
         {
           method: "POST",
           headers: { Authorization: "Token " + BASEROW_TOKEN },
-          body: fd
+          body: fd,
         }
       );
 
@@ -56,14 +57,10 @@ module.exports = async function handler(req, res) {
 
       if (!uploadResp.ok) {
         console.error("Baserow upload failed:", data);
-        return res.status(500).json({
-          error: "Baserow upload failed",
-          detail: data
-        });
+        return res.status(500).json({ error: "Baserow upload failed", detail: data });
       }
 
       return res.status(200).json(data);
-
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
       return res.status(500).json({ error: "Upload exception" });
