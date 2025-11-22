@@ -16,7 +16,10 @@ module.exports = async function handler(req, res) {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const form = new IncomingForm({ multiples: true });
+  const form = new IncomingForm({
+    multiples: false,
+    keepExtensions: true,
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -26,12 +29,18 @@ module.exports = async function handler(req, res) {
 
     let file = files.file;
 
-    // ✅ normalize Formidable v3 formats
+    // ✅ Formidable v3 normalisation
     if (Array.isArray(file)) file = file[0];
-    if (file && file.filepath === undefined && file[0]) file = file[0];
 
-    if (!file || !file.filepath) {
-      console.error("NO FILE PATH FOUND:", file);
+    // ✅ FINAL FIX: Vercel + Formidable v3 file path
+    const filepath =
+      file?.filepath ||
+      file?._writeStream?.path ||
+      file?.file?.filepath ||
+      null;
+
+    if (!filepath) {
+      console.error("NO VALID FILEPATH", file);
       return res.status(400).json({ error: "No valid file received" });
     }
 
@@ -39,11 +48,10 @@ module.exports = async function handler(req, res) {
       const fd = new FormData();
       fd.append(
         "file",
-        fs.createReadStream(file.filepath),
+        fs.createReadStream(filepath),
         file.originalFilename || "upload.bin"
       );
 
-      // ✅ CRITICAL FIX: include multipart headers
       const headers = {
         Authorization: "Token " + BASEROW_TOKEN,
         ...fd.getHeaders()
@@ -68,8 +76,8 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(data);
 
     } catch (e) {
-      console.error("UPLOAD ERROR:", e);
-      return res.status(500).json({ error: "Upload exception", detail: e });
+      console.error("UPLOAD EXCEPTION:", e);
+      return res.status(500).json({ error: "Upload exception", detail: e.toString() });
     }
   });
 };
