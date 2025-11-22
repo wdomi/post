@@ -4,7 +4,7 @@ export const config = {
   },
 };
 
-const { formidable } = require("formidable");
+const { IncomingForm } = require("formidable");
 const fs = require("fs");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const form = formidable({
+  const form = new IncomingForm({
     multiples: false,
     keepExtensions: true,
   });
@@ -27,9 +27,10 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Form parsing failed" });
     }
 
-    const file = files.file;
-    console.log("FILES:", files);
-    console.log("FILE:", file);
+    let file = files.file;
+
+    // ✅ Vercel sometimes returns an array
+    if (Array.isArray(file)) file = file[0];
 
     if (!file || !file.filepath) {
       console.error("NO FILEPATH", file);
@@ -41,17 +42,19 @@ module.exports = async function handler(req, res) {
       fd.append(
         "file",
         fs.createReadStream(file.filepath),
-        file.originalFilename
+        file.originalFilename || "upload"
       );
 
       const uploadResp = await fetch(
         "https://api.baserow.io/api/user-files/upload-file/",
         {
           method: "POST",
-          headers: { Authorization: "Token " + BASEROW_TOKEN },
-          body: fd,
-        }
-      );
+          headers: {
+            Authorization: "Token " + BASEROW_TOKEN
+          },
+            body: fd,
+          }
+        );
 
       const data = await uploadResp.json();
 
@@ -61,6 +64,7 @@ module.exports = async function handler(req, res) {
       }
 
       return res.status(200).json(data);
+
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
       return res.status(500).json({ error: "Upload exception" });
