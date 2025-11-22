@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const form = new IncomingForm({ multiples: false });
+  const form = new IncomingForm({ multiples: true });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -24,9 +24,18 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Form parsing failed" });
     }
 
-    const file = files.file;
-    if (!file) {
-      return res.status(400).json({ error: "Missing file upload" });
+    let file = files.file;
+
+    // ✅ normalize Formidable v3 formats
+    if (Array.isArray(file)) {
+      file = file[0];
+    } else if (file && file.filepath === undefined && file[0]) {
+      file = file[0];
+    }
+
+    if (!file || !file.filepath) {
+      console.error("NO FILE PATH FOUND:", file);
+      return res.status(400).json({ error: "No valid file received" });
     }
 
     try {
@@ -34,7 +43,7 @@ module.exports = async function handler(req, res) {
       fd.append(
         "file",
         fs.createReadStream(file.filepath),
-        file.originalFilename
+        file.originalFilename || "upload.bin"
       );
 
       const uploadResp = await fetch(
@@ -57,7 +66,7 @@ module.exports = async function handler(req, res) {
 
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
-      return res.status(500).json({ error: "Upload exception" });
+      return res.status(500).json({ error: "Upload exception", detail: e });
     }
   });
 };
