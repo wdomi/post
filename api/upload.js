@@ -28,8 +28,6 @@ module.exports = async function handler(req, res) {
     }
 
     let file = files.file;
-
-    // ✅ Vercel sometimes returns an array
     if (Array.isArray(file)) file = file[0];
 
     if (!file || !file.filepath) {
@@ -39,22 +37,24 @@ module.exports = async function handler(req, res) {
 
     try {
       const fd = new FormData();
+
       fd.append(
         "file",
         fs.createReadStream(file.filepath),
-        file.originalFilename || "upload"
+        file.originalFilename || "upload.jpg"
       );
+
+      const headers = fd.getHeaders();
+      headers.Authorization = "Token " + BASEROW_TOKEN;
 
       const uploadResp = await fetch(
         "https://api.baserow.io/api/user-files/upload-file/",
         {
           method: "POST",
-          headers: {
-            Authorization: "Token " + BASEROW_TOKEN
-          },
-            body: fd,
-          }
-        );
+          headers,
+          body: fd,
+        }
+      );
 
       const data = await uploadResp.json();
 
