@@ -4,18 +4,21 @@ export const config = {
   },
 };
 
-const { IncomingForm } = require("formidable");
+const formidable = require("formidable");
+const fs = require("fs");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
-const fs = require("fs");
 
 module.exports = async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
 
-  const form = new IncomingForm({
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
+  }
+
+  const form = new formidable.IncomingForm({
     multiples: false,
     keepExtensions: true,
-    fileWriteStreamHandler: () => null   // ✅ do NOT write to disk
   });
 
   form.parse(req, async (err, fields, files) => {
@@ -26,22 +29,31 @@ module.exports = async function handler(req, res) {
 
     const file = files.file;
     if (!file) {
+      console.error("NO FILE RECEIVED");
       return res.status(400).json({ error: "Missing file upload" });
     }
 
-    try {
-      const buffer = await file.toBuffer();   // ✅ get file in memory
+    // ✅ Vercel sometimes stores path as .filepath, sometimes .path
+    const filepath = file.filepath || file.path;
 
+    if (!filepath) {
+      console.error("NO FILEPATH", file);
+      return res.status(500).json({ error: "File not accessible on server" });
+    }
+
+    try {
       const fd = new FormData();
-      fd.append("file", buffer, file.originalFilename);
+      fd.append(
+        "file",
+        fs.createReadStream(filepath),
+        file.originalFilename || file.name
+      );
 
       const uploadResp = await fetch(
         "https://api.baserow.io/api/user-files/upload-file/",
         {
           method: "POST",
-          headers: {
-            Authorization: "Token " + BASEROW_TOKEN
-          },
+          headers: { Authorization: "Token " + BASEROW_TOKEN },
           body: fd,
         }
       );
