@@ -5,18 +5,18 @@ export const config = {
 };
 
 const { IncomingForm } = require("formidable");
-const fs = require("fs");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
+const fs = require("fs");
 
 module.exports = async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
 
-  if (req.method !== "POST") {
-    return res.status(405).send("Method Not Allowed");
-  }
-
-  const form = new IncomingForm({ multiples: false, keepExtensions: true });
+  const form = new IncomingForm({
+    multiples: false,
+    keepExtensions: true,
+    fileWriteStreamHandler: () => null   // ✅ do NOT write to disk
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -30,12 +30,10 @@ module.exports = async function handler(req, res) {
     }
 
     try {
+      const buffer = await file.toBuffer();   // ✅ get file in memory
+
       const fd = new FormData();
-      fd.append(
-        "file",
-        fs.createReadStream(file.filepath),
-        file.originalFilename
-      );
+      fd.append("file", buffer, file.originalFilename);
 
       const uploadResp = await fetch(
         "https://api.baserow.io/api/user-files/upload-file/",
