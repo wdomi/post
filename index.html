@@ -225,6 +225,33 @@ async function toggleProcessed(id, value){
   }
 }
 
+// =============== THUMBNAIL HELPERS ===============
+
+function renderFieldPreview(files, containerId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  if (!Array.isArray(files)) return;
+
+  for (const f of files) {
+    const thumbUrl =
+      (f.thumbnails && f.thumbnails.tiny && f.thumbnails.tiny.url) ||
+      f.url;
+    if (!thumbUrl) continue;
+
+    const img = document.createElement("img");
+    img.src = thumbUrl;
+    img.alt = f.name || "";
+    img.onclick = () => showImageModal(f.url || thumbUrl);
+    container.appendChild(img);
+  }
+}
+
+function renderPictures(row) {
+  renderFieldPreview(row.picture_parcel, "picturePreview");
+  renderFieldPreview(row.picture_content, "contentPreview");
+  renderFieldPreview(row.picture_paperwork, "paperworkPreview");
+}
+
 // =============== EDIT / NEW FORM ===============
 
 async function openEdit(id){
@@ -251,6 +278,9 @@ async function openEdit(id){
     document.getElementById('stored').value = r.stored || '';
     document.getElementById('remarks').value = r.remarks || '';
     document.getElementById('processed').checked = !!r.processed;
+
+    // show existing thumbnails
+    renderPictures(r);
 
     formMsg.innerText = "";
 
