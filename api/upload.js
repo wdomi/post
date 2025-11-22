@@ -1,10 +1,8 @@
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false }
 };
 
-const formidable = require("formidable");
+const formidable = require("formidable").default;
 const fs = require("fs");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
@@ -16,47 +14,28 @@ module.exports = async function handler(req, res) {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const form = new formidable.IncomingForm({
-    multiples: false,
-    keepExtensions: true,
-  });
+  const form = formidable({ multiples: false });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
-      console.error("form parse error:", err);
+      console.error("Form parse error:", err);
       return res.status(400).json({ error: "Form parsing failed" });
     }
 
-    let file = files.file;
-    if (Array.isArray(file)) file = file[0];
-
-    if (!file) {
-      console.error("NO FILE", files);
-      return res.status(400).json({ error: "Missing file" });
-    }
-
-    const filepath = file.filepath || file.path || file._writeStream?.path;
-    if (!filepath) {
-      console.error("NO FILEPATH", file);
-      return res.status(500).json({ error: "File not accessible" });
+    const file = files.file;
+    if (!file || !file.filepath) {
+      return res.status(400).json({ error: "Missing file upload" });
     }
 
     try {
       const fd = new FormData();
-      fd.append(
-        "file",
-        fs.readFileSync(filepath),   // ✅ IMPORTANT change
-        file.originalFilename
-      );
+      fd.append("file", fs.createReadStream(file.filepath), file.originalFilename);
 
       const uploadResp = await fetch(
         "https://api.baserow.io/api/user-files/upload-file/",
         {
           method: "POST",
-          headers: {
-            Authorization: `Token ${BASEROW_TOKEN}`,
-            ...fd.getHeaders()        // ✅ CRITICAL LINE
-          },
+          headers: { Authorization: "Token " + BASEROW_TOKEN },
           body: fd
         }
       );
@@ -65,11 +44,14 @@ module.exports = async function handler(req, res) {
 
       if (!uploadResp.ok) {
         console.error("Baserow upload failed:", data);
-        return res.status(500).json({ error: "Baserow upload failed", detail: data });
+        return res.status(500).json({
+          error: "Baserow upload failed",
+          detail: data
+        });
       }
 
+      // ✅ return the FILE OBJECT Baserow expects
       return res.status(200).json(data);
-
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
       return res.status(500).json({ error: "Upload exception" });
