@@ -386,7 +386,7 @@ async function buildPayloadFromForm(){
       const fd = new FormData();
       fd.append("file", f);
       const res = await api.post("/upload", fd);
-      data[fieldName].push(res.data.file);
+        data[fieldName].push(res.data);
     }
   }
 
