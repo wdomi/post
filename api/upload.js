@@ -1,12 +1,15 @@
-// api/upload.js – CommonJS version for Vercel Node runtime
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 const formidable = require("formidable");
 const fs = require("fs");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
 
-// Disable the default body parser so formidable can handle multipart/form-data
-async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const BASEROW_TOKEN = process.env.BASEROW_TOKEN;
 
   if (req.method !== "POST") {
@@ -26,12 +29,23 @@ async function handler(req, res) {
       return res.status(400).json({ error: "Missing file upload" });
     }
 
+    // ✅ support both formidable field names
+    const filePath =
+      file.filepath ||
+      file.path ||
+      (file._writeStream && file._writeStream.path);
+
+    if (!filePath) {
+      console.error("NO FILE PATH:", file);
+      return res.status(500).json({ error: "Could not read uploaded file" });
+    }
+
     try {
       const fd = new FormData();
       fd.append(
         "file",
-        fs.createReadStream(file.filepath),
-        file.originalFilename
+        fs.createReadStream(filePath),
+        file.originalFilename || file.name
       );
 
       const uploadResp = await fetch(
@@ -39,7 +53,7 @@ async function handler(req, res) {
         {
           method: "POST",
           headers: { Authorization: "Token " + BASEROW_TOKEN },
-          body: fd
+          body: fd,
         }
       );
 
@@ -47,23 +61,14 @@ async function handler(req, res) {
 
       if (!uploadResp.ok) {
         console.error("Baserow upload failed:", data);
-        return res
-          .status(uploadResp.status || 500)
-          .json({ error: "Baserow upload failed", detail: data });
+        return res.status(500).json({ error: "Baserow upload failed", detail: data });
       }
 
-      // Baserow returns an object with `file` info etc.
       return res.status(200).json(data);
+
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
-      return res.status(500).json({ error: "Upload exception" });
+      return res.status(500).json({ error: "Upload exception", detail: e.toString() });
     }
   });
-}
-
-module.exports = handler;
-module.exports.config = {
-  api: {
-    bodyParser: false
-  }
 };
