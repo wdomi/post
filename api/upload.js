@@ -2,7 +2,7 @@ export const config = {
   api: { bodyParser: false }
 };
 
-const formidable = require("formidable").default;
+const formidable = require("formidable");
 const fs = require("fs");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
@@ -14,7 +14,10 @@ module.exports = async function handler(req, res) {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const form = formidable({ multiples: false });
+  const form = formidable({
+    multiples: false,
+    keepExtensions: true
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -22,8 +25,17 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Form parsing failed" });
     }
 
-    const file = files.file;
+    // ✅ FIX: Support formidable v3 format
+    let file = files.file;
+
+    if (Array.isArray(file)) {
+      file = file[0];
+    }
+
+    console.log("FILES RECEIVED:", files);
+
     if (!file || !file.filepath) {
+      console.error("NO FILEPATH", files);
       return res.status(400).json({ error: "Missing file upload" });
     }
 
@@ -50,8 +62,8 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      // ✅ return the FILE OBJECT Baserow expects
       return res.status(200).json(data);
+
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
       return res.status(500).json({ error: "Upload exception" });
