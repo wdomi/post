@@ -377,25 +377,32 @@ async function buildPayloadFromForm(){
   data.processed = document.getElementById("processed").checked;
 
   async function upload(inputId, fieldName){
-    const files = document.getElementById(inputId).files;
-    if(files.length === 0) return;
+  const files = document.getElementById(inputId).files;
+  if(files.length === 0) return;
 
-    data[fieldName] = [];
+  data[fieldName] = [];
 
-    for (const f of files){
-      const fd = new FormData();
-      fd.append("file", f, f.name);
+  for(const f of files){
+    const fd = new FormData();
+    fd.append("file", f, f.name);
 
-      // ✅ IMPORTANT: use axios directly AND let browser set multipart boundary
-      const res = await axios.post("/api/upload", fd, {
+    const res = await fetch(
+      "https://api.baserow.io/api/user-files/upload-file/",
+      {
+        method: "POST",
         headers: {
-          "Content-Type": undefined
-        }
-      });
+          Authorization: "Token " + BASEROW_TOKEN   // ✅ see below
+        },
+        body: fd
+      }
+    );
 
-      data[fieldName].push(res.data);
-    }
+    const baserowFile = await res.json();
+
+    data[fieldName].push(baserowFile);
   }
+}
+
 
   await upload("picture_parcel","picture_parcel");
   await upload("picture_content","picture_content");
