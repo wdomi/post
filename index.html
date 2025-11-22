@@ -377,24 +377,25 @@ async function buildPayloadFromForm(){
   data.processed = document.getElementById("processed").checked;
 
   async function upload(inputId, fieldName){
-  const files = document.getElementById(inputId).files;
-  if(files.length === 0) return;
+    const files = document.getElementById(inputId).files;
+    if(files.length === 0) return;
 
-  data[fieldName] = [];
+    data[fieldName] = [];
 
-  for (const f of files){
-    const fd = new FormData();
-    fd.append("file", f, f.name);
+    for (const f of files){
+      const fd = new FormData();
+      fd.append("file", f, f.name);
 
-    const res = await api.post("/upload", fd, {
-      headers: {
-        "Content-Type": "multipart/form-data"
-      }
-    });
+      // ✅ IMPORTANT: use axios directly AND let browser set multipart boundary
+      const res = await axios.post("/api/upload", fd, {
+        headers: {
+          "Content-Type": undefined
+        }
+      });
 
-    data[fieldName].push(res.data.file);
+      data[fieldName].push(res.data);
+    }
   }
-}
 
   await upload("picture_parcel","picture_parcel");
   await upload("picture_content","picture_content");
@@ -402,6 +403,7 @@ async function buildPayloadFromForm(){
 
   return data;
 }
+
 
 // =============== MODAL ===============
 
