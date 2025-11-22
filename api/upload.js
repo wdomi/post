@@ -16,7 +16,10 @@ module.exports = async function handler(req, res) {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const form = formidable({ multiples: true });   // ✅ allow arrays
+  const form = formidable({
+    multiples: false,
+    keepExtensions: true,
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -24,24 +27,21 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Form parsing failed" });
     }
 
-    let file = files.file;
+    const fileArr =
+      Array.isArray(files.file) ? files.file : files.file ? [files.file] : [];
 
-    // ✅ normalize single vs multiple
-    if (Array.isArray(file)) {
-      file = file[0];
-    }
-
-    if (!file || !file.filepath) {
-      console.error("NO FILE RECEIVED:", files);
+    if (!fileArr.length) {
       return res.status(400).json({ error: "Missing file upload" });
     }
+
+    const file = fileArr[0];
 
     try {
       const fd = new FormData();
       fd.append(
         "file",
         fs.createReadStream(file.filepath),
-        file.originalFilename || "upload.bin"
+        file.originalFilename || file.newFilename
       );
 
       const uploadResp = await fetch(
@@ -49,9 +49,9 @@ module.exports = async function handler(req, res) {
         {
           method: "POST",
           headers: {
-            Authorization: "Token " + BASEROW_TOKEN
+            Authorization: "Token " + BASEROW_TOKEN,
           },
-          body: fd
+          body: fd,
         }
       );
 
@@ -66,7 +66,7 @@ module.exports = async function handler(req, res) {
 
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
-      return res.status(500).json({ error: "Upload exception", detail: String(e) });
+      return res.status(500).json({ error: "Upload exception", detail: e });
     }
   });
 };
