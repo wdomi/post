@@ -17,54 +17,47 @@ module.exports = async function handler(req, res) {
   }
 
   const form = new formidable.IncomingForm({
-    multiples: true,
+    multiples: false,
     keepExtensions: true,
   });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
-      console.error("Form parse error:", err);
+      console.error("form parse error:", err);
       return res.status(400).json({ error: "Form parsing failed" });
     }
 
     let file = files.file;
-
-    // ✅ Sometimes formidable returns a single file
-    // ✅ Sometimes an array
-    if (Array.isArray(file)) {
-      file = file[0];
-    }
+    if (Array.isArray(file)) file = file[0];
 
     if (!file) {
-      console.error("NO FILE RECEIVED", files);
-      return res.status(400).json({ error: "Missing file upload" });
+      console.error("NO FILE", files);
+      return res.status(400).json({ error: "Missing file" });
     }
 
-    const filepath =
-      file.filepath ||
-      file.path ||
-      file._writeStream?.path ||
-      null;
-
+    const filepath = file.filepath || file.path || file._writeStream?.path;
     if (!filepath) {
       console.error("NO FILEPATH", file);
-      return res.status(500).json({ error: "File not accessible on server" });
+      return res.status(500).json({ error: "File not accessible" });
     }
 
     try {
       const fd = new FormData();
       fd.append(
         "file",
-        fs.createReadStream(filepath),
-        file.originalFilename || file.name
+        fs.readFileSync(filepath),   // ✅ IMPORTANT change
+        file.originalFilename
       );
 
       const uploadResp = await fetch(
         "https://api.baserow.io/api/user-files/upload-file/",
         {
           method: "POST",
-          headers: { Authorization: "Token " + BASEROW_TOKEN },
-          body: fd,
+          headers: {
+            Authorization: `Token ${BASEROW_TOKEN}`,
+            ...fd.getHeaders()        // ✅ CRITICAL LINE
+          },
+          body: fd
         }
       );
 
@@ -72,10 +65,7 @@ module.exports = async function handler(req, res) {
 
       if (!uploadResp.ok) {
         console.error("Baserow upload failed:", data);
-        return res.status(500).json({
-          error: "Baserow upload failed",
-          detail: data
-        });
+        return res.status(500).json({ error: "Baserow upload failed", detail: data });
       }
 
       return res.status(200).json(data);
