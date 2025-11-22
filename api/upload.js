@@ -27,11 +27,8 @@ module.exports = async function handler(req, res) {
     let file = files.file;
 
     // ✅ normalize Formidable v3 formats
-    if (Array.isArray(file)) {
-      file = file[0];
-    } else if (file && file.filepath === undefined && file[0]) {
-      file = file[0];
-    }
+    if (Array.isArray(file)) file = file[0];
+    if (file && file.filepath === undefined && file[0]) file = file[0];
 
     if (!file || !file.filepath) {
       console.error("NO FILE PATH FOUND:", file);
@@ -46,11 +43,17 @@ module.exports = async function handler(req, res) {
         file.originalFilename || "upload.bin"
       );
 
+      // ✅ CRITICAL FIX: include multipart headers
+      const headers = {
+        Authorization: "Token " + BASEROW_TOKEN,
+        ...fd.getHeaders()
+      };
+
       const uploadResp = await fetch(
         "https://api.baserow.io/api/user-files/upload-file/",
         {
           method: "POST",
-          headers: { Authorization: "Token " + BASEROW_TOKEN },
+          headers,
           body: fd,
         }
       );
