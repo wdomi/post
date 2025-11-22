@@ -4,7 +4,7 @@ export const config = {
   },
 };
 
-const formidable = require("formidable");
+const { IncomingForm } = require("formidable");
 const fs = require("fs");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
@@ -16,10 +16,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const form = formidable({
-    multiples: false,
-    keepExtensions: true,
-  });
+  const form = new IncomingForm({ multiples: false, keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -27,21 +24,17 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Form parsing failed" });
     }
 
-    const fileArr =
-      Array.isArray(files.file) ? files.file : files.file ? [files.file] : [];
-
-    if (!fileArr.length) {
+    const file = files.file;
+    if (!file) {
       return res.status(400).json({ error: "Missing file upload" });
     }
-
-    const file = fileArr[0];
 
     try {
       const fd = new FormData();
       fd.append(
         "file",
         fs.createReadStream(file.filepath),
-        file.originalFilename || file.newFilename
+        file.originalFilename
       );
 
       const uploadResp = await fetch(
@@ -49,7 +42,7 @@ module.exports = async function handler(req, res) {
         {
           method: "POST",
           headers: {
-            Authorization: "Token " + BASEROW_TOKEN,
+            Authorization: "Token " + BASEROW_TOKEN
           },
           body: fd,
         }
@@ -66,7 +59,7 @@ module.exports = async function handler(req, res) {
 
     } catch (e) {
       console.error("UPLOAD ERROR:", e);
-      return res.status(500).json({ error: "Upload exception", detail: e });
+      return res.status(500).json({ error: "Upload exception" });
     }
   });
 };
