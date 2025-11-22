@@ -17,7 +17,7 @@ module.exports = async function handler(req, res) {
   }
 
   const form = new formidable.IncomingForm({
-    multiples: false,
+    multiples: true,
     keepExtensions: true,
   });
 
@@ -27,14 +27,24 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Form parsing failed" });
     }
 
-    const file = files.file;
+    let file = files.file;
+
+    // ✅ Sometimes formidable returns a single file
+    // ✅ Sometimes an array
+    if (Array.isArray(file)) {
+      file = file[0];
+    }
+
     if (!file) {
-      console.error("NO FILE RECEIVED");
+      console.error("NO FILE RECEIVED", files);
       return res.status(400).json({ error: "Missing file upload" });
     }
 
-    // ✅ Vercel sometimes stores path as .filepath, sometimes .path
-    const filepath = file.filepath || file.path;
+    const filepath =
+      file.filepath ||
+      file.path ||
+      file._writeStream?.path ||
+      null;
 
     if (!filepath) {
       console.error("NO FILEPATH", file);
@@ -62,7 +72,10 @@ module.exports = async function handler(req, res) {
 
       if (!uploadResp.ok) {
         console.error("Baserow upload failed:", data);
-        return res.status(500).json({ error: "Baserow upload failed", detail: data });
+        return res.status(500).json({
+          error: "Baserow upload failed",
+          detail: data
+        });
       }
 
       return res.status(200).json(data);
