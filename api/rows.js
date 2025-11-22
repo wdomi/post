@@ -6,39 +6,36 @@ module.exports = async function handler(req, res) {
 
   const base = `https://api.baserow.io/api/database/rows/table/${TABLE_ID}`;
 
-  // =====================================
-  // GET ROWS (supports processed toggle)
-  // =====================================
+  // ============================
+  // GET ROWS (server filtering)
+  // ============================
   if (req.method === "GET") {
     const showProcessed = req.query.processed === "true";
 
-    let params;
-
-    if (showProcessed) {
-      // ✅ show ALL rows
-      params =
-        "/?user_field_names=true&page_size=200";
-    } else {
-      // ✅ show only unprocessed:
-      // processed=false OR processed empty
-      params =
-        "/?user_field_names=true&page_size=200"
-        + "&filter_type=OR"
-        + "&filters[processed__boolean]=false"
-        + "&filters[processed__empty]=true";
-    }
-
-    const resp = await fetch(base + params, {
-      headers: { Authorization: "Token " + BASEROW_TOKEN }
-    });
+    const resp = await fetch(
+      base + "/?user_field_names=true&page_size=200",
+      {
+        headers: { Authorization: "Token " + BASEROW_TOKEN }
+      }
+    );
 
     const data = await resp.json();
-    return res.status(resp.status).json(data);
+
+    // ✅ NEW: filter here based on real values
+    let rows = data.results || [];
+
+    if (!showProcessed) {
+      rows = rows.filter(r =>
+        r.processed !== true && r.processed !== "true"
+      );
+    }
+
+    return res.status(200).json({ results: rows });
   }
 
-  // =====================================
-  // CREATE ROW
-  // =====================================
+  // ============================
+  // CREATE NEW ROW
+  // ============================
   if (req.method === "POST") {
     let payload = req.body;
 
