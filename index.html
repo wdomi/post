@@ -43,7 +43,7 @@
 
   <header>
     <div>
-      <h1><img src="/favicon.ico" alt="📦" style="width:24px;height:24px;"> Keller's incoming parcels — Baserow viewer/editor UPDATED</h1>
+      <h1><img src="/favicon.png" alt="📦" style="width:24px;height:24px;"> Keller's incoming parcels — Baserow viewer/editor UPDATED</h1>
       <p class="lead">Table ID: <strong>745937</strong> — Database ID: <strong>323904</strong></p>
     </div>
   </header>
@@ -173,11 +173,15 @@ async function fetchRows(){
 }
 
 function renderRows(rows){
-  const container=document.getElementById('rowsContainer');
+  const container = document.getElementById('rowsContainer');
+
   if (!rows.length){
-    container.innerHTML='<div class="muted">No records</div>';
+    container.innerHTML = '<div class="muted">No records</div>';
     return;
   }
+
+  // 🔥 SORT NEWEST FIRST (highest ID first)
+  rows.sort((a, b) => b.id - a.id);
 
   let html = `
     <table>
@@ -217,6 +221,10 @@ function renderRows(rows){
   html += `</tbody></table>`;
   container.innerHTML = html;
 }
+
+
+
+  
 
 // =============== INLINE PROCESSED TOGGLE ===============
 
